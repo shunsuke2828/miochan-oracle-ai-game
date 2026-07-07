@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#101828" />
+    <title>みおちゃんに聞かせて！理想の上司 — Oracle AI Experience</title>
+    <meta
+      name="description"
+      content="理想の上司をみおちゃんに聞かせて、60秒ゲームとOracle AI Vector Searchで会場の仲間を見つける体験デモ"
+    />
+    <link rel="stylesheet" href="static/styles.css?v=29" />
+  </head>
+  <body class="welcome-panel-active">
+    <div class="ambient ambient-one"></div>
+    <div class="ambient ambient-two"></div>
+
+    <header class="topbar">
+      <a class="brand" href="./" aria-label="Mio Oracle AI Experience ホーム">
+        <img class="oracle-logo" src="assets/brand/oracle-logo.png?v=1" width="96" height="30" alt="Oracle" />
+        <span class="brand-divider"></span>
+        <span class="brand-sub">AI EXPERIENCE</span>
+      </a>
+      <div class="live-cluster">
+        <a class="display-link" href="display" target="_blank">会場スクリーン</a>
+        <span class="status-pill" id="system-status">
+          <span class="status-dot"></span>
+          <span>接続確認中</span>
+        </span>
+      </div>
+    </header>
+
+    <main class="shell">
+      <section class="experience" aria-live="polite">
+        <div class="experience-copy">
+          <div class="eyebrow"><span>LIVE DEMO</span> 2分で体験</div>
+          <h1><span class="title-prompt">みおちゃんに聞かせて！</span><em>理想の上司</em></h1>
+          <p class="lead">
+            AIで動く秘書みおちゃんを、60秒でレスキュー。<br />
+            最後に、会場であなたと価値観が近い人を見つけます。
+          </p>
+
+          <div class="oracle-pipeline" id="oracle-pipeline" aria-label="Oracle処理ステップ">
+            <div class="pipeline-card" data-pipeline="genai">
+              <span class="pipeline-index">01</span>
+              <div><strong>GENERATE</strong><small>OCI Generative AI</small></div>
+            </div>
+            <div class="pipeline-line"></div>
+            <div class="pipeline-card" data-pipeline="database">
+              <span class="pipeline-index">02</span>
+              <div><strong>GROUND</strong><small>Oracle Database</small></div>
+            </div>
+            <div class="pipeline-line"></div>
+            <div class="pipeline-card" data-pipeline="vector">
+              <span class="pipeline-index">03</span>
+              <div><strong>CONNECT</strong><small>AI Vector Search</small></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mio-column">
+          <div class="mio-stage" id="mio-stage" data-state="waving">
+            <div class="stage-orbit orbit-one"></div>
+            <div class="stage-orbit orbit-two"></div>
+            <div class="mio-speech" id="mio-speech">こんにちは！<br />今日は何を手伝おうか？</div>
+            <img id="mio-sprite" class="mio-sprite" alt="手を振るみおちゃん" hidden />
+            <div class="state-caption">
+              <span class="caption-dot"></span>
+              <span id="state-caption-text">READY TO HELP</span>
+            </div>
+          </div>
+
+        </div>
+
+        <section class="interaction-card" id="interaction-card">
+          <div class="step-meter rescue-step-meter">
+            <span class="step active" data-step-dot="welcome">1</span>
+            <span class="step-bar"></span>
+            <span class="step" data-step-dot="survey">2</span>
+            <span class="step-bar"></span>
+            <span class="step" data-step-dot="game-guide">3</span>
+            <span class="step-bar"></span>
+            <span class="step" data-step-dot="countdown">4</span>
+            <span class="step-bar"></span>
+            <span class="step" data-step-dot="rescue">5</span>
+            <span class="step-bar"></span>
+            <span class="step" data-step-dot="rescue-result">6</span>
+            <span class="step-bar"></span>
+            <span class="step" data-step-dot="result">7</span>
+          </div>
+
+          <div class="panel active" data-panel="welcome">
+            <div class="panel-kicker">WELCOME</div>
+            <h2>60秒で、みおちゃんを助けよう</h2>
+            <p>ニックネームを入力したら、最初に理想の上司を教えてください。その後、60秒ゲームが始まります。</p>
+            <form id="start-form" class="form-stack">
+              <label for="nickname">ニックネーム</label>
+              <div class="input-wrap">
+                <span>☺</span>
+                <input id="nickname" name="nickname" minlength="2" maxlength="16" autocomplete="off" required />
+              </div>
+              <p class="privacy-note">本名・メールアドレス・電話番号・住所などは入力しないでください。</p>
+              <aside class="participation-notice">
+                <strong>参加前にご確認ください</strong>
+                <p>「理想の上司アンケートへ」を押すと、以下に同意したものとして体験を開始します。</p>
+                <ul>
+                  <li>回答・ベクトル・採点結果をOracle AI Databaseに30日間保存します</li>
+                  <li>ニックネーム・診断タイプ・類似度を会場マップに表示します</li>
+                  <li>ニックネーム・ゲームスコア・ランクを会場ランキングに表示します</li>
+                  <li>回答本文は会場画面には表示しません</li>
+                </ul>
+                <small>期限後は1時間ごとの定期処理で削除し、管理者は期限前にも削除できます。</small>
+              </aside>
+              <button class="primary-button" type="submit">
+                理想の上司アンケートへ <span aria-hidden="true">→</span>
+              </button>
+            </form>
+          </div>
+
+          <div class="panel rescue-panel" data-panel="rescue">
+            <div class="panel-header">
+              <div><div class="panel-kicker">STEP 2 — RESCUE GAME</div><h2>みおちゃんを助けて！</h2></div>
+              <span class="rescue-timer" id="rescue-timer">01:00</span>
+            </div>
+            <div class="rescue-stats">
+              <span><small>SCORE</small><strong id="rescue-score">0</strong></span>
+              <span><small>COIN</small><strong id="rescue-coins">0</strong></span>
+              <span><small>COMBO</small><strong id="rescue-combo">—</strong></span>
+            </div>
+            <div class="difficulty-row"><span>みおちゃんの困り度</span><strong id="difficulty-value">100%</strong></div>
+            <div class="difficulty-track"><i id="difficulty-bar"></i></div>
+            <article class="rescue-message"><span>MIO</span><p id="rescue-message">困りごとを準備しています…</p></article>
+            <p class="rescue-question">あなたなら、どう助ける？</p>
+            <div class="rescue-choices" id="rescue-choices"></div>
+            <form id="rescue-form" class="rescue-composer">
+              <input id="rescue-answer" minlength="2" maxlength="500" placeholder="自分の言葉で助ける…" />
+              <button type="submit">送信</button>
+            </form>
+            <div class="rescue-scoring-status" id="rescue-scoring-status">回答待ち</div>
+            <div class="rescue-tech">SELECT AI CHAT <i>×</i> AI <i>×</i> MIO-RS</div>
+          </div>
+
+          <div class="panel rescue-result-panel" data-panel="rescue-result">
+            <div id="rescue-result-content"></div>
+            <button type="button" class="primary-button" id="to-result">価値観マッチ結果を見る <span>→</span></button>
+          </div>
+
+          <div class="panel" data-panel="survey">
+            <div class="panel-header">
+              <div><div class="panel-kicker">STEP 1 — FIND YOUR PEOPLE</div><h2>理想の上司は？</h2></div>
+              <span class="mini-badge">QUICK SURVEY</span>
+            </div>
+            <p class="survey-invite">まずはいきなりですが、アンケートに答えてください！</p>
+            <p class="question-copy">理想の上司を一言と、その理由で教えてください。正解はありません。</p>
+            <div class="example-strip" aria-label="回答例">
+              <span class="example-label">回答例はこちら</span>
+              <div class="example-scroll" id="survey-examples" tabindex="0" aria-label="横にスクロールできる回答例"></div>
+            </div>
+            <form id="survey-form">
+              <div class="textarea-wrap">
+                <textarea id="survey-answer" minlength="3" maxlength="500" rows="5" placeholder="どんな上司と働きたいか、自由にどうぞ…" required></textarea>
+                <span id="char-count">0 / 500</span>
+              </div>
+              <button class="primary-button" type="submit">アンケートを送信 <span>→</span></button>
+            </form>
+            <div class="process-preview">
+              <span>自由回答</span><i>→</i><span>埋め込み</span><i>→</i><span>Vector Search</span>
+            </div>
+          </div>
+
+          <div class="panel game-guide-panel" data-panel="game-guide">
+            <div class="panel-kicker">NEXT — 60 SECOND CHALLENGE</div>
+            <h2>次は、みおちゃんを助けて！</h2>
+            <p class="game-guide-lead">困っているみおちゃんへ、あなたならどんなアドバイスをしますか？</p>
+            <div class="game-guide-grid">
+              <article><b>60</b><span><strong>制限時間は60秒</strong><small>できるだけ多くの相談に答えよう</small></span></article>
+              <article><b>5</b><span><strong>5つの選択肢</strong><small>クリックするとすぐ回答されます</small></span></article>
+              <article><b>✎</b><span><strong>自由記述もOK</strong><small>良いアドバイスなら最高評価</small></span></article>
+            </div>
+            <section class="game-example" aria-label="ゲームの回答例">
+              <div class="game-example-question"><b>MIO</b><p>「初めて進行役をするから、うまくできるか不安なの……」</p></div>
+              <div class="game-answer-patterns">
+                <article class="good"><b>◎ 良い回答</b><p>「不安になるよね。最初に目的と進める順番を一緒に整理しよう。」</p><small>共感 ＋ 具体的な行動</small></article>
+                <article class="okay"><b>○ 惜しい回答</b><p>「大丈夫。きっとうまくいくよ。」</p><small>共感はあるが、行動が曖昧</small></article>
+                <article class="avoid"><b>△ 避けたい回答</b><p>「心配しすぎ。自分でなんとかして。」</p><small>突き放していて行動につながらない</small></article>
+              </div>
+            </section>
+            <div class="game-guide-rule"><strong>AIがチェックするポイント</strong><span>共感・具体性・行動につながるアドバイス・回答の速さ</span></div>
+            <p class="game-guide-note">スタートを押すと「3・2・1」のあとに60秒タイマーが始まります。</p>
+            <button type="button" class="primary-button" id="start-game">ゲームスタート <span>→</span></button>
+          </div>
+
+          <div class="panel countdown-panel" data-panel="countdown">
+            <div class="panel-kicker">GET READY</div>
+            <h2>60秒レスキューゲーム</h2>
+            <p>カウントが終わったら、60秒チャレンジ開始！</p>
+            <div class="countdown-number" id="countdown-number" aria-live="assertive">3</div>
+            <small>選択肢はクリックですぐ送信されます</small>
+          </div>
+
+          <div class="panel result-panel" data-panel="result">
+            <div id="result-content"></div>
+            <button type="button" class="secondary-button" id="restart">もう一度体験する</button>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <div class="toast" id="toast" role="status"></div>
+    <button class="mobile-start-cta" id="mobile-start-cta" type="button">体験を始める <span>↓</span></button>
+    <script src="static/app.js?v=23" defer></script>
+  </body>
+</html>

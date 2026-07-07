@@ -1,0 +1,22 @@
+[Unit]
+Description=Mio Oracle AI booth demo
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=opc
+Group=opc
+WorkingDirectory=/home/opc/demo_miochan
+EnvironmentFile=/etc/mio-demo.env
+ExecStart=/usr/bin/python3 -m uvicorn app.main:app --host 127.0.0.1 --port 4317 --no-access-log
+Restart=always
+RestartSec=3
+TimeoutStopSec=20
+KillSignal=SIGINT
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

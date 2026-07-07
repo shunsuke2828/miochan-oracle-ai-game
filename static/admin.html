@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <meta name="theme-color" content="#f5f3ef" />
+    <title>参加者管理 — Mio Oracle AI Experience</title>
+    <link rel="stylesheet" href="static/admin.css?v=4" />
+  </head>
+  <body>
+    <main class="admin-shell">
+      <header class="admin-header">
+        <div>
+          <div class="admin-brand"><img class="oracle-logo" src="assets/brand/oracle-logo.png?v=1" width="96" height="30" alt="Oracle" /><i></i>MIO ADMIN</div>
+          <p class="admin-kicker">PARTICIPANT MANAGEMENT</p>
+          <h1>参加者と診断結果</h1>
+          <p class="admin-lead">登録されたニックネーム、自由回答、診断結果を確認できます。</p>
+        </div>
+        <button type="button" class="refresh-button" id="refresh-button"><span>↻</span> 最新の情報に更新</button>
+      </header>
+
+      <section class="admin-stats" aria-label="参加者集計">
+        <article><span>登録数</span><strong id="total-count">—</strong><small>件</small></article>
+        <article><span>診断完了</span><strong id="completed-count">—</strong><small>件</small></article>
+        <article><span>マップ公開</span><strong id="public-count">—</strong><small>件</small></article>
+        <article class="mode-card"><span>DATA SOURCE</span><strong id="admin-data-mode">接続中</strong></article>
+      </section>
+
+      <section class="participant-panel">
+        <div class="participant-toolbar">
+          <div>
+            <h2>登録履歴</h2>
+            <p>デモ初期データは保護されています。</p>
+          </div>
+          <div class="toolbar-controls">
+            <label class="search-field">
+              <span>⌕</span>
+              <input id="participant-search" type="search" placeholder="ニックネーム・結果・回答を検索" autocomplete="off" />
+            </label>
+            <label class="filter-field">
+              <span>表示</span>
+              <select id="status-filter">
+                <option value="all">すべて</option>
+                <option value="completed">診断完了</option>
+                <option value="pending">未診断</option>
+                <option value="visitor">来場者のみ</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th class="select-column"><input id="select-all" type="checkbox" aria-label="表示中の来場者をすべて選択" /></th>
+                <th>ニックネーム</th>
+                <th>診断結果</th>
+                <th>自由回答</th>
+                <th>公開設定</th>
+                <th>登録日時</th>
+                <th>データ詳細</th>
+              </tr>
+            </thead>
+            <tbody id="participant-rows"></tbody>
+          </table>
+          <div class="empty-state" id="empty-state" hidden>
+            <strong>該当する参加者はいません</strong>
+            <span>検索条件を変更してみてください。</span>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div class="selection-bar" id="selection-bar" hidden>
+      <div><strong id="selected-count">0</strong><span>名を選択中</span></div>
+      <button type="button" id="clear-selection">選択解除</button>
+      <button type="button" class="delete-button" id="open-delete">選択した参加者を削除</button>
+    </div>
+
+    <dialog class="delete-dialog" id="delete-dialog">
+      <form method="dialog">
+        <div class="warning-mark">!</div>
+        <p class="dialog-kicker">DELETE PARTICIPANTS</p>
+        <h2>選択した参加者を削除しますか？</h2>
+        <p id="delete-description"></p>
+        <div class="delete-names" id="delete-names"></div>
+        <p class="delete-note">診断結果と関連する会話履歴も削除されます。この操作は取り消せません。</p>
+        <div class="dialog-actions">
+          <button type="submit" value="cancel">キャンセル</button>
+          <button type="button" class="delete-button" id="confirm-delete">削除する</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="participant-detail-dialog" id="participant-detail-dialog">
+      <form method="dialog" class="detail-dialog-header">
+        <div><p>PARTICIPANT DATA</p><h2>自然言語とベクトル詳細</h2></div>
+        <button type="submit" value="close" aria-label="閉じる">×</button>
+      </form>
+      <div class="detail-dialog-body" id="participant-detail-content">
+        <div class="detail-loading">データを読み込んでいます…</div>
+      </div>
+    </dialog>
+
+    <div class="admin-toast" id="admin-toast" role="status"></div>
+    <script src="static/admin.js?v=7" defer></script>
+  </body>
+</html>

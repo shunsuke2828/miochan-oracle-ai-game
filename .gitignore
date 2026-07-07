@@ -1,0 +1,22 @@
+.env
+.env.*
+!.env.example
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+wallet/
+*.pem
+*.key
+*.p12
+*.sso
+*.jks
+*.zip
+data/*.json
+!data/.gitkeep
+# Tokyo production deployment contains environment-specific OCIDs and secrets.
+deploy/oci_tokyo/
+deploy/nginx/demo-*.conf

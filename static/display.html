@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f6f1ea" />
+    <title>Find Your People — 会場スクリーン</title>
+    <link rel="stylesheet" href="static/styles.css?v=19" />
+  </head>
+  <body class="display-body">
+    <header class="display-header">
+      <div class="brand"><img class="oracle-logo" src="assets/brand/oracle-logo.png?v=1" width="96" height="30" alt="Oracle" /><span class="brand-divider"></span><span class="brand-sub">AI EXPERIENCE</span></div>
+      <div class="display-live"><span class="status-dot"></span> LIVE AT THE VENUE</div>
+    </header>
+    <main class="display-shell">
+      <section class="display-title">
+        <div class="title-join-card">
+          <img class="entry-qr title-entry-qr" src="assets/brand/mio-entry-qr.png?v=1" width="104" height="104" alt="参加ページのQRコード" />
+          <div><span>SCAN &amp; JOIN!</span><h1>スマホでピッ！<em>2分でつながる</em></h1><p>QRを読み込んで「理想の上司」を教えてね。あなたに近い仲間が、この会場マップにふわっと現れます。</p></div>
+        </div>
+      </section>
+
+      <section class="network-card">
+        <div class="network-viewport" id="network-viewport" tabindex="0" aria-label="参加者のつながりマップ。ドラッグで移動、ホイールまたはピンチで拡大縮小できます">
+          <div class="network-3d" id="network-3d" aria-hidden="true"></div>
+          <div class="network-3d-labels" id="network-3d-labels" aria-hidden="true"></div>
+          <div class="network-world" id="network-world">
+            <div class="network-grid"></div>
+            <canvas id="network-canvas" class="network-canvas" aria-hidden="true"></canvas>
+            <div id="network-nodes" class="network-nodes"></div>
+            <div class="network-center">
+              <span id="participant-count">—</span>
+              <small>PEOPLE CONNECTED</small>
+            </div>
+          </div>
+        </div>
+        <div class="network-hint">ドラッグで回転・ホイールで拡大縮小 <b>→</b> ニックネームを選択</div>
+        <div class="network-method-note">配置はMDSによる3次元近似・線の数値はOracleの実測COSINE距離（小数4桁表示）</div>
+        <div class="network-controls" aria-label="マップ表示操作">
+          <button type="button" id="zoom-out" aria-label="縮小">−</button>
+          <output id="zoom-level" aria-live="polite">100%</output>
+          <button type="button" id="zoom-in" aria-label="拡大">＋</button>
+          <button type="button" id="zoom-reset" class="zoom-reset" aria-label="表示位置と倍率を戻す">↺</button>
+        </div>
+        <div class="mio-display-wrap" data-state="idle">
+          <img id="display-mio-sprite" class="display-mio-sprite" alt="みおちゃん" hidden />
+        </div>
+        <div class="network-legend" id="persona-legend"></div>
+        <div class="connection-detail" id="connection-detail" hidden></div>
+      </section>
+
+      <aside class="display-sidebar">
+        <section class="live-card">
+          <div class="panel-kicker">LIVE ACTIVITY</div>
+          <h2>いま、会場では</h2>
+          <div class="stat-pair"><span><strong id="completed-count">—</strong><small>診断完了</small></span><span><strong id="type-count">6</strong><small>価値観タイプ</small></span></div>
+          <div id="activity-feed" class="activity-feed"></div>
+        </section>
+        <section class="score-card">
+          <div class="panel-kicker">RESCUE RANKING</div>
+          <div class="score-headline">
+            <button type="button" id="top-rescue-player" class="score-top-player" disabled><small>最高スコア</small><strong><b id="top-rescue-score">0</b><em id="top-rescue-name">挑戦者を待っています</em></strong></button>
+          </div>
+          <div class="score-ranking" id="rescue-ranking"></div>
+        </section>
+      </aside>
+    </main>
+    <footer class="display-footer"><span>GENERATE</span><i></i><span>GROUND</span><i></i><span>CONNECT</span><b id="display-data-mode">DATA MODE —</b></footer>
+    <script src="static/vendor/3d-force-graph-1.80.0.min.js" defer></script>
+    <script src="static/display.js?v=16" defer></script>
+  </body>
+</html>
