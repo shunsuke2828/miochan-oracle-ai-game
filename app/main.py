@@ -119,6 +119,11 @@ def display() -> FileResponse:
     return FileResponse(static_dir / "display.html")
 
 
+@app.get("/why-oracle", include_in_schema=False)
+def why_oracle() -> FileResponse:
+    return FileResponse(static_dir / "why-oracle.html")
+
+
 @app.get("/admin", include_in_schema=False)
 def admin() -> FileResponse:
     return FileResponse(static_dir / "admin.html")

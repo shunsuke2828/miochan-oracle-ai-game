@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f7f3ed" />
+    <meta name="description" content="みおちゃん60秒レスキューを支えるOracle AI Database、Select AI、AI Vector Searchの実装を紹介します。" />
+    <title>Why Oracle — みおちゃん AI Experience</title>
+    <link rel="stylesheet" href="static/why-oracle.css?v=1" />
+  </head>
+  <body>
+    <header class="why-header">
+      <a class="why-brand" href="./" aria-label="みおちゃん AI Experience ホーム">
+        <img src="assets/brand/oracle-logo.png?v=1" width="96" height="30" alt="Oracle" />
+        <i></i><span>AI EXPERIENCE</span>
+      </a>
+      <nav aria-label="ページナビゲーション">
+        <a href="./">体験する</a>
+        <a href="display">会場マップ</a>
+        <span class="why-live"><b></b><span id="system-label">ADB CONNECTING</span></span>
+      </nav>
+    </header>
+
+    <main>
+      <section class="why-hero">
+        <div class="why-hero-copy">
+          <p class="why-kicker">WHY ORACLE <span>AI IN THE DATA</span></p>
+          <h1>会話が、データになり、<br /><em>つながりになる。</em></h1>
+          <p class="why-intro">
+            このデモは、生成AIを呼んで終わりではありません。自由回答をOracle AI Databaseの中で
+            1536次元へ変換し、実測のCOSINE距離で比較し、会場の仲間とのつながりまでリアルタイムに描きます。
+          </p>
+          <div class="why-actions">
+            <a class="why-primary" href="./">2分で体験する <span>→</span></a>
+            <a class="why-secondary" href="display">ライブ会場を見る</a>
+          </div>
+        </div>
+
+        <aside class="why-live-panel" aria-label="稼働中のシステム情報">
+          <div class="live-panel-head"><span>LIVE ARCHITECTURE</span><b id="live-state">CHECKING</b></div>
+          <div class="live-pulse"><span></span><i></i><i></i></div>
+          <dl>
+            <div><dt>DATA</dt><dd id="live-data-mode">Oracle AI Database</dd></div>
+            <div><dt>EMBED</dt><dd><strong id="live-dimension">1536</strong> dimensions</dd></div>
+            <div><dt>MODEL</dt><dd id="live-model">cohere.embed-v4.0</dd></div>
+            <div><dt>PEOPLE</dt><dd><strong id="live-people">—</strong> connected</dd></div>
+          </dl>
+          <p id="live-note">実環境のヘルスAPIへ接続しています</p>
+        </aside>
+      </section>
+
+      <section class="why-thesis">
+        <p>THE SHORT ANSWER</p>
+        <blockquote>
+          Oracleを選ぶ理由は、<strong>AIの結果を保存するDB</strong>だからではなく、<br />
+          <strong>データのすぐ隣でAI処理と意味検索を実行できるDB</strong>だから。
+        </blockquote>
+      </section>
+
+      <section class="why-section" id="architecture">
+        <div class="section-heading">
+          <div><p>01 — ONE DATA JOURNEY</p><h2>自由回答から、会場のつながりまで</h2></div>
+          <span>GENERATE → GROUND → CONNECT</span>
+        </div>
+
+        <div class="journey" aria-label="処理の流れ">
+          <article class="journey-step generate">
+            <div class="step-top"><b>01</b><span>GENERATE</span></div>
+            <div class="step-icon">会話</div>
+            <h3>Select AIで理解する</h3>
+            <p>Gemini 2.5 Flashが、共感・具体性・行動につながる助言かを構造化して評価します。</p>
+            <code>DBMS_CLOUD_AI.GENERATE</code>
+          </article>
+          <span class="journey-arrow" aria-hidden="true">→</span>
+          <article class="journey-step ground">
+            <div class="step-top"><b>02</b><span>GROUND</span></div>
+            <div class="step-icon">1536</div>
+            <h3>DB内で意味へ変える</h3>
+            <p>自然言語だけをADBへ保存。DBMS_VECTOR_CHAINがOCI Generative AIを呼び、意味ベクトルを生成します。</p>
+            <code>UTL_TO_EMBEDDING</code>
+          </article>
+          <span class="journey-arrow" aria-hidden="true">→</span>
+          <article class="journey-step connect">
+            <div class="step-top"><b>03</b><span>CONNECT</span></div>
+            <div class="step-icon">近い</div>
+            <h3>SQLで仲間を見つける</h3>
+            <p>VECTOR_DISTANCEのCOSINE距離で回答同士を比較。近い参加者を会場マップへつなぎます。</p>
+            <code>VECTOR_DISTANCE(…, COSINE)</code>
+          </article>
+        </div>
+
+        <figure class="why-flow-figure">
+          <img src="assets/illustrations/why-oracle-vector-flow-v2.png?v=1" width="1643" height="957" alt="自然言語からベクトル生成、Oracle AI Databaseでの保存、類似検索までの処理イメージ" />
+          <figcaption>自然言語・ベクトル・検索結果が、ひとつのデータジャーニーとしてつながります。</figcaption>
+        </figure>
+      </section>
+
+      <section class="why-section why-reasons">
+        <div class="section-heading">
+          <div><p>02 — WHY IT MATTERS</p><h2>この体験でOracleが効いている4つの理由</h2></div>
+        </div>
+        <div class="reason-grid">
+          <article><span>01</span><h3>AIをデータの場所へ</h3><p>アプリがベクトルを作って持ち込むのではなく、自然言語を受け取ったDatabase自身がEmbeddingを実行。同期用の別パイプラインを減らせます。</p><small>DBMS_VECTOR_CHAIN</small></article>
+          <article><span>02</span><h3>SQLのまま意味検索</h3><p>参加者、回答、公開設定、ベクトルを同じトランザクション境界で管理。通常の絞り込みと意味距離を一つのSQLで扱えます。</p><small>VECTOR + SQL</small></article>
+          <article><span>03</span><h3>数値まで説明できる</h3><p>マップの線に出る数値は見栄え用の推定値ではなく、Oracleが計算した実測COSINE距離。自然言語と1536次元値も管理画面で確認できます。</p><small>EXPLAINABLE DISTANCE</small></article>
+          <article><span>04</span><h3>デモから運用へ進める</h3><p>ADBのプライベート・エンドポイント、API GatewayのHTTPS、NSGによる経路制御、保存期限と削除処理まで同じ構成に組み込めます。</p><small>SECURE BY DESIGN</small></article>
+        </div>
+      </section>
+
+      <section class="why-section fast-path">
+        <div class="section-heading light">
+          <div><p>03 — DESIGNED FOR 60 SECONDS</p><h2>AIを待つ時間を、体験から消す</h2></div>
+          <span>RESPOND NOW / SCORE DEEPLY LATER</span>
+        </div>
+        <div class="fast-layout">
+          <div class="fast-timeline">
+            <div><b>0.0s</b><span><strong>回答をADBへ保存</strong><small>まず自然言語を確実に受け取る</small></span></div>
+            <div><b>NOW</b><span><strong>次の相談を即時表示</strong><small>60秒の時計をAI待ちで減らさない</small></span></div>
+            <div><b>ASYNC</b><span><strong>DB内Embedding</strong><small>HTTP応答後に1536次元化</small></span></div>
+            <div><b>FINAL</b><span><strong>AI評価とMIO-RSを確定</strong><small>残処理を回収して最終ランクを表示</small></span></div>
+          </div>
+          <div class="fast-message">
+            <p>Oracleの価値は、すべてを同期処理に詰め込むことではありません。</p>
+            <h3>信頼できる保存を先に。<br />重いAI処理は、体験を止めずに。</h3>
+            <p>一時的にAIやEmbeddingが失敗しても、固定発話と規則ベース採点へフォールバックし、ゲームを最後まで完了できる設計です。</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="why-section map-proof">
+        <div class="section-heading">
+          <div><p>04 — HONEST VISUALIZATION</p><h2>配置は近似、線の値は実測</h2></div>
+        </div>
+        <div class="map-proof-grid">
+          <div class="map-orbit" aria-hidden="true">
+            <span class="map-node n1">🦉</span><span class="map-node n2">🐬</span><span class="map-node n3">🌿</span><span class="map-node n4">🦅</span>
+            <i class="map-line l1"></i><i class="map-line l2"></i><i class="map-line l3"></i>
+            <b class="distance d1">0.3153</b><b class="distance d2">0.3641</b><b class="distance d3">0.4717</b>
+          </div>
+          <div class="map-copy">
+            <ol>
+              <li><b>Oracle VECTOR_DISTANCE</b><span>回答ベクトル全組合せのCOSINE距離をDatabaseで計算</span></li>
+              <li><b>Metric MDS</b><span>高次元の距離関係を、できるだけ保つ3次元座標へ近似</span></li>
+              <li><b>3d-force-graph</b><span>座標を固定して描画。各人から近い最大3件だけを線で表示</span></li>
+            </ol>
+            <p>3次元化ですべての距離を完全再現できないため、画面上でも「配置は近似」と明記。線上にはOracleの実測値を加工せず表示します。</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="why-section trust-section">
+        <div class="section-heading">
+          <div><p>05 — TRUST BOUNDARY</p><h2>見せるデモにも、守る境界を</h2></div>
+        </div>
+        <div class="trust-grid">
+          <article><b>HTTPS</b><span>OCI API Gateway</span><small>OCI管理ドメインと証明書</small></article>
+          <article><b>PRIVATE</b><span>Autonomous Database</span><small>プライベート・エンドポイント</small></article>
+          <article><b>NSG</b><span>Gateway → Compute</span><small>バックエンドはGateway経由のみ</small></article>
+          <article><b>30 DAYS</b><span>Lifecycle</span><small>期限後に定期削除</small></article>
+        </div>
+      </section>
+
+      <section class="why-cta">
+        <div><p>SEE THE ARCHITECTURE MOVE</p><h2>説明の次は、実際につながってみる。</h2></div>
+        <div><a class="why-primary" href="./">みおちゃんに聞かせる <span>→</span></a><a class="why-secondary" href="display">会場マップへ</a></div>
+      </section>
+    </main>
+
+    <footer class="why-footer">
+      <div class="why-brand"><img src="assets/brand/oracle-logo.png?v=1" width="96" height="30" alt="Oracle" /><i></i><span>AI EXPERIENCE</span></div>
+      <p>SELECT AI <b>×</b> ORACLE AI DATABASE <b>×</b> AI VECTOR SEARCH</p>
+      <nav><a href="api/health">Live API</a><a href="api/docs">API Docs</a><a href="display">Venue Display</a></nav>
+    </footer>
+    <script src="static/why-oracle.js?v=1" defer></script>
+  </body>
+</html>

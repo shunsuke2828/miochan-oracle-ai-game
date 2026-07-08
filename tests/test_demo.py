@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import unittest
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 from app.ai_service import compose_demo_reply
 from app.database import (
@@ -38,6 +39,13 @@ from app.rescue_service import (
 
 
 class EmbeddingTests(unittest.TestCase):
+    def test_why_oracle_page_documents_the_live_architecture(self) -> None:
+        page = (Path(__file__).resolve().parents[1] / "static" / "why-oracle.html").read_text()
+        self.assertIn("DBMS_CLOUD_AI.GENERATE", page)
+        self.assertIn("UTL_TO_EMBEDDING", page)
+        self.assertIn("VECTOR_DISTANCE(…, COSINE)", page)
+        self.assertIn("Metric MDS", page)
+
     def test_db_embedding_uses_minimal_chicago_cohere_v4_parameters(self) -> None:
         self.assertEqual(
             json.loads(db_embedding_parameters()),
