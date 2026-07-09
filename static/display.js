@@ -43,7 +43,7 @@ function frameNetwork3D(duration = 650) {
   graph3d.zoomToFit(0, 42);
   const camera = graph3d.cameraPosition();
   const target = graph3d.controls()?.target || { x: 0, y: 0, z: 0 };
-  const closer = 0.7;
+  const closer = 0.4;
   graph3d.cameraPosition({
     x: target.x + (camera.x - target.x) * closer,
     y: target.y + (camera.y - target.y) * closer,
@@ -250,7 +250,7 @@ function render3DLabels(nodes, links) {
         <b>${safe(node.icon)}</b><strong>${safe(node.nickname)}</strong>
       </span>`),
     ...links.map((link, index) => `
-      <span class="network-3d-link-label" data-link-index="${index}">${Number(link.distance).toFixed(4)}</span>`),
+      <span class="network-3d-link-label" data-link-index="${index}" style="display:none">${Number(link.distance).toFixed(4)}</span>`),
   ].join("");
 }
 
@@ -274,7 +274,11 @@ function start3DLabelLoop() {
         const link = data.links[Number(label.dataset.linkIndex)];
         const source = typeof link?.source === "object" ? link.source : data.nodes.find((item) => item.id === link?.source);
         const target = typeof link?.target === "object" ? link.target : data.nodes.find((item) => item.id === link?.target);
-        if (!source || !target) return;
+        const selectedEdge = Boolean(networkState.selectedId) && source && target && (
+          source.id === networkState.selectedId || target.id === networkState.selectedId
+        );
+        label.style.display = selectedEdge ? "" : "none";
+        if (!selectedEdge) return;
         const point = graph3d.graph2ScreenCoords(
           (source.x + target.x) / 2,
           (source.y + target.y) / 2,
@@ -339,8 +343,9 @@ function applySelection() {
     const highlighted = Boolean(selectedId) && link && (
       graphEndpointId(link.source) === selectedId || graphEndpointId(link.target) === selectedId
     );
+    element.style.display = highlighted ? "" : "none";
     element.classList.toggle("selected", highlighted);
-    element.classList.toggle("dimmed", Boolean(selectedId) && !highlighted);
+    element.classList.remove("dimmed");
   });
   if (networkState.force3d) {
     networkState.force3d
