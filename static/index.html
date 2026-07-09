@@ -9,7 +9,7 @@
       name="description"
       content="理想の上司をみおちゃんに聞かせて、60秒ゲームとOracle AI Vector Searchで会場の仲間を見つける体験デモ"
     />
-    <link rel="stylesheet" href="static/styles.css?v=30" />
+    <link rel="stylesheet" href="static/styles.css?v=31" />
   </head>
   <body class="welcome-panel-active">
     <div class="ambient ambient-one"></div>
@@ -22,7 +22,6 @@
         <span class="brand-sub">AI EXPERIENCE</span>
       </a>
       <div class="live-cluster">
-        <a class="display-link why-link" href="why-oracle">Why Oracle</a>
         <a class="display-link" href="display" target="_blank">会場スクリーン</a>
         <span class="status-pill" id="system-status">
           <span class="status-dot"></span>
@@ -93,27 +92,27 @@
           <div class="panel active" data-panel="welcome">
             <div class="panel-kicker">WELCOME</div>
             <h2>60秒で、みおちゃんを助けよう</h2>
-            <p>ニックネームを入力したら、最初に理想の上司を教えてください。その後、60秒ゲームが始まります。</p>
+            <p>まずはプレイヤーネームを決めよう！「理想の上司」を教えたら、みおちゃんを救う60秒チャレンジがスタート！</p>
             <form id="start-form" class="form-stack">
-              <label for="nickname">ニックネーム</label>
+              <label for="nickname">プレイヤーネーム</label>
               <div class="input-wrap">
                 <span>☺</span>
                 <input id="nickname" name="nickname" minlength="2" maxlength="16" autocomplete="off" required />
               </div>
-              <p class="privacy-note">本名・メールアドレス・電話番号・住所などは入力しないでください。</p>
+              <p class="privacy-note">本名などの個人情報は書かず、会場で呼ばれたいニックネームを使ってね。</p>
               <aside class="participation-notice">
-                <strong>参加前にご確認ください</strong>
-                <p>「理想の上司アンケートへ」を押すと、以下に同意したものとして体験を開始します。</p>
+                <strong>ゲームを始める前に</strong>
+                <p>ボタンを押したら冒険スタート！参加データは次のように使います。</p>
                 <ul>
-                  <li>回答・ベクトル・採点結果をOracle AI Databaseに30日間保存します</li>
-                  <li>ニックネーム・診断タイプ・類似度を会場マップに表示します</li>
-                  <li>ニックネーム・ゲームスコア・ランクを会場ランキングに表示します</li>
-                  <li>回答本文は会場画面には表示しません</li>
+                  <li>回答・ベクトル・スコアはOracle AI Databaseで30日間セーブ</li>
+                  <li>ニックネーム・診断タイプ・仲間との近さは会場マップに登場</li>
+                  <li>ニックネーム・ゲームスコア・ランクは会場ランキングに登場</li>
+                  <li>回答の文章そのものは会場画面には表示しません</li>
                 </ul>
-                <small>期限後は1時間ごとの定期処理で削除し、管理者は期限前にも削除できます。</small>
+                <small>データは30日後に自動で削除。必要な場合は管理者がいつでも削除できます。</small>
               </aside>
               <button class="primary-button" type="submit">
-                理想の上司アンケートへ <span aria-hidden="true">→</span>
+                理想の上司を教えにいく <span aria-hidden="true">→</span>
               </button>
             </form>
           </div>

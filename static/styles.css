@@ -121,31 +121,31 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visib
 .interaction-card { min-height: 625px; position: relative; padding: 28px 30px 30px; border-radius: var(--radius-xl); background: var(--card); border: 1px solid rgba(255,255,255,.82); box-shadow: var(--shadow); backdrop-filter: blur(24px); overflow: hidden; }
 .interaction-card::before { content: ""; position: absolute; inset: 0 0 auto; height: 4px; background: linear-gradient(90deg,var(--oracle),var(--gold),var(--teal)); }
 .step-meter { display: flex; align-items: center; justify-content: center; margin-bottom: 27px; }
-.step { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; border: 1px solid var(--line); color: #98a2b3; font-size: 10px; font-weight: 900; background: rgba(255,255,255,.7); transition: .3s; }
+.step { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; border: 1px solid var(--line); color: #98a2b3; font-size: 11px; font-weight: 900; background: rgba(255,255,255,.7); transition: .3s; }
 .step.active, .step.done { background: var(--ink); color: white; border-color: var(--ink); }
 .step.done { background: var(--teal); border-color: var(--teal); }
 .step-bar { width: 40px; height: 1px; background: var(--line); }
 .panel { display: none; animation: panel-in .42s cubic-bezier(.22,.8,.22,1); }
 .panel.active { display: block; }
-.panel-kicker { margin-bottom: 9px; color: var(--oracle); font-size: 10px; font-weight: 900; letter-spacing: .18em; }
-.panel h2 { margin: 0; font-size: 27px; letter-spacing: -.035em; }
-.panel > p, .question-copy { color: var(--muted); font-size: 13px; line-height: 1.7; }
+.panel-kicker { margin-bottom: 10px; color: var(--oracle); font-size: 11px; font-weight: 900; letter-spacing: .18em; }
+.panel h2 { margin: 0; font-size: 29px; letter-spacing: -.035em; }
+.panel > p, .question-copy { color: var(--muted); font-size: 14px; line-height: 1.75; }
 .panel-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 15px; margin-bottom: 18px; }
 .mini-badge { padding: 7px 10px; border-radius: 99px; background: #f2f4f7; color: var(--muted); font-size: 9px; font-weight: 800; }
 .form-stack { display: grid; gap: 15px; margin-top: 26px; }
-.form-stack > label:not(.check-row) { margin-bottom: -8px; color: var(--ink-soft); font-size: 11px; font-weight: 800; }
+.form-stack > label:not(.check-row) { margin-bottom: -8px; color: var(--ink-soft); font-size: 13px; font-weight: 800; }
 .input-wrap { height: 55px; display: flex; align-items: center; gap: 10px; padding: 0 15px; background: white; border: 1px solid var(--line); border-radius: 14px; }
 .input-wrap span { color: var(--oracle); }
-.input-wrap input { width: 100%; border: 0; outline: 0; color: var(--ink); background: transparent; }
+.input-wrap input { width: 100%; border: 0; outline: 0; color: var(--ink); background: transparent; font-size: 14px; }
 .input-wrap:focus-within { border-color: rgba(199,70,52,.55); box-shadow: 0 0 0 4px rgba(199,70,52,.08); }
-.privacy-note{margin:-4px 0 -5px!important;padding:9px 11px;border-left:3px solid var(--gold);background:#fff9ec;color:#7b6540!important;font-size:9px!important;line-height:1.55!important}
+.privacy-note{margin:-4px 0 -5px!important;padding:10px 12px;border-left:3px solid var(--gold);background:#fff9ec;color:#7b6540!important;font-size:11px!important;font-weight:700;line-height:1.6!important}
 .check-row { display: grid; grid-template-columns: 20px 1fr; align-items: start; gap: 10px; padding: 14px; border-radius: 14px; background: #f8f8f6; font-size: 11px; }
 .check-row input { accent-color: var(--oracle); margin-top: 2px; }
 .check-row strong { display: block; }.check-row small { display: block; margin-top: 3px; color: var(--muted); }
 .retention-note{display:grid;gap:4px;padding:12px 14px;border:1px solid #eaded4;border-radius:14px;background:#fffaf5;color:var(--ink-soft);font-size:9px;line-height:1.65}.retention-note strong{color:var(--ink);font-size:10px}.retention-note span{display:block}
-.participation-notice{padding:13px 14px;border:1px solid #ead8c8;border-radius:14px;background:#fff9f1;color:var(--ink-soft);font-size:9px;line-height:1.55}.participation-notice strong{display:block;color:var(--ink);font-size:11px}.participation-notice p{margin:4px 0 7px!important;color:var(--ink-soft)!important;font-size:9px!important}.participation-notice ul{display:grid;gap:3px;margin:0;padding-left:17px}.participation-notice li::marker{color:var(--oracle)}.participation-notice small{display:block;margin-top:7px;padding-top:6px;border-top:1px solid #eaded4;color:#756c62;font-size:8px}
+.participation-notice{padding:15px 16px;border:1px solid #ead8c8;border-radius:14px;background:#fff9f1;color:var(--ink-soft);font-size:11px;line-height:1.65}.participation-notice strong{display:block;color:var(--ink);font-size:13px}.participation-notice p{margin:5px 0 9px!important;color:var(--ink-soft)!important;font-size:11px!important;line-height:1.6!important}.participation-notice ul{display:grid;gap:5px;margin:0;padding-left:19px}.participation-notice li::marker{color:var(--oracle)}.participation-notice small{display:block;margin-top:9px;padding-top:8px;border-top:1px solid #eaded4;color:#756c62;font-size:10px;line-height:1.55}
 .mobile-start-cta{display:none}
-.primary-button, .secondary-button { width: 100%; min-height: 54px; border: 0; border-radius: 15px; display: flex; align-items: center; justify-content: center; gap: 16px; font-weight: 900; transition: .2s; }
+.primary-button, .secondary-button { width: 100%; min-height: 56px; border: 0; border-radius: 15px; display: flex; align-items: center; justify-content: center; gap: 16px; font-size:15px; font-weight: 900; transition: .2s; }
 .primary-button { background: linear-gradient(135deg,#ff6f76 0%,#ef5c75 52%,#f09d4b 100%); color: white; box-shadow: 0 12px 28px rgba(218,72,82,.28); }
 .primary-button:hover { background: linear-gradient(135deg,#ff7f79 0%,#f04f70 50%,#f2a441 100%); transform: translateY(-2px); box-shadow: 0 16px 34px rgba(218,72,82,.34); }
 .primary-button:disabled { cursor: wait; opacity: .55; transform: none; }
