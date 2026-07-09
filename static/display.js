@@ -19,6 +19,37 @@ const networkState = {
 
 const MIN_ZOOM = 0.55;
 const MAX_ZOOM = 3;
+const AUTO_ROTATE_RESUME_MS = 8000;
+let autoRotateTimer = null;
+
+function stop3DAutoRotate() {
+  window.clearTimeout(autoRotateTimer);
+  autoRotateTimer = null;
+  const controls = networkState.force3d?.controls();
+  if (controls) controls.autoRotate = false;
+}
+
+function resume3DAutoRotate(delay = AUTO_ROTATE_RESUME_MS) {
+  window.clearTimeout(autoRotateTimer);
+  autoRotateTimer = window.setTimeout(() => {
+    const controls = networkState.force3d?.controls();
+    if (controls) controls.autoRotate = true;
+  }, delay);
+}
+
+function frameNetwork3D(duration = 650) {
+  const graph3d = networkState.force3d;
+  if (!graph3d) return;
+  graph3d.zoomToFit(0, 42);
+  const camera = graph3d.cameraPosition();
+  const target = graph3d.controls()?.target || { x: 0, y: 0, z: 0 };
+  const closer = 0.7;
+  graph3d.cameraPosition({
+    x: target.x + (camera.x - target.x) * closer,
+    y: target.y + (camera.y - target.y) * closer,
+    z: target.z + (camera.z - target.z) * closer,
+  }, target, duration);
+}
 
 async function refreshDisplay() {
   try {
@@ -186,17 +217,26 @@ function renderNetwork3D(graph) {
       .linkWidth(1.1)
       .linkHoverPrecision(5)
       .enableNodeDrag(false)
-      .onNodeClick((node) => selectNode(node.id))
+      .onNodeClick((node) => {
+        stop3DAutoRotate();
+        resume3DAutoRotate();
+        selectNode(node.id);
+      })
       .onBackgroundClick(() => {
         if (networkState.selectedId) selectNode(networkState.selectedId);
       });
+    const controls = networkState.force3d.controls();
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 0.42;
+    controls.addEventListener("start", stop3DAutoRotate);
+    controls.addEventListener("end", () => resume3DAutoRotate());
   }
 
   if (signature !== networkState.graph3dSignature) {
     networkState.graph3dSignature = signature;
     render3DLabels(nodes, links);
     networkState.force3d.graphData({ nodes, links });
-    window.setTimeout(() => networkState.force3d?.zoomToFit(650, 70), 80);
+    window.setTimeout(() => frameNetwork3D(), 80);
   }
   applySelection();
   start3DLabelLoop();
@@ -256,6 +296,8 @@ function selectNode(nodeId) {
 
 function focusNode(nodeId) {
   if (!nodeId || !networkState.graph.nodes.some((node) => node.id === nodeId)) return;
+  stop3DAutoRotate();
+  resume3DAutoRotate();
   networkState.selectedId = nodeId;
   applySelection();
   drawConnections();
@@ -326,6 +368,8 @@ function applySelection() {
 
 function centerNodeInViewport(nodeId) {
   if (networkState.force3d) {
+    stop3DAutoRotate();
+    resume3DAutoRotate();
     const node = networkState.force3d.graphData().nodes.find((item) => item.id === nodeId);
     if (!node) return;
     const distance = 75;
@@ -558,6 +602,8 @@ function setupNetworkCamera() {
     const zoom3D = (factor) => {
       const graph3d = networkState.force3d;
       if (!graph3d) return;
+      stop3DAutoRotate();
+      resume3DAutoRotate();
       const current = graph3d.cameraPosition();
       graph3d.cameraPosition(
         { x: current.x * factor, y: current.y * factor, z: current.z * factor },
@@ -569,7 +615,9 @@ function setupNetworkCamera() {
     document.querySelector("#zoom-in").addEventListener("click", () => zoom3D(0.78));
     document.querySelector("#zoom-out").addEventListener("click", () => zoom3D(1.28));
     document.querySelector("#zoom-reset").addEventListener("click", () => {
-      networkState.force3d?.zoomToFit(650, 70);
+      stop3DAutoRotate();
+      frameNetwork3D();
+      resume3DAutoRotate();
     });
     return;
   }
