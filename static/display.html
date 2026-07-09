@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#f6f1ea" />
     <title>Find Your People — 会場スクリーン</title>
-    <link rel="stylesheet" href="static/styles.css?v=21" />
+    <link rel="stylesheet" href="static/styles.css?v=22" />
   </head>
   <body class="display-body">
     <header class="display-header">
@@ -49,14 +49,13 @@
       <aside class="display-sidebar">
         <section class="live-card">
           <div class="panel-kicker">LIVE ACTIVITY</div>
-          <h2>いま、会場では</h2>
           <div class="stat-pair"><span><strong id="completed-count">—</strong><small>診断完了</small></span><span><strong id="type-count">6</strong><small>価値観タイプ</small></span></div>
           <div id="activity-feed" class="activity-feed"></div>
         </section>
         <section class="score-card">
           <div class="panel-kicker">RESCUE RANKING</div>
           <div class="score-headline">
-            <button type="button" id="top-rescue-player" class="score-top-player" disabled><small>最高スコア</small><strong><b id="top-rescue-score">0</b><em id="top-rescue-name">挑戦者を待っています</em></strong></button>
+            <button type="button" id="top-rescue-player" class="score-top-player" disabled><span class="score-crown" aria-hidden="true">👑</span><small>ランキング1位・最高スコア</small><strong><b id="top-rescue-score">0</b><em id="top-rescue-name">挑戦者を待っています</em></strong></button>
           </div>
           <div class="score-ranking" id="rescue-ranking"></div>
         </section>
@@ -64,6 +63,6 @@
     </main>
     <footer class="display-footer"><span>GENERATE</span><i></i><span>GROUND</span><i></i><span>CONNECT</span><a href="why-oracle">WHY ORACLE →</a><b id="display-data-mode">DATA MODE —</b></footer>
     <script src="static/vendor/3d-force-graph-1.80.0.min.js" defer></script>
-    <script src="static/display.js?v=16" defer></script>
+    <script src="static/display.js?v=17" defer></script>
   </body>
 </html>

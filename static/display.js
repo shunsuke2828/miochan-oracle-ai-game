@@ -58,12 +58,13 @@ function renderScoreboard(scoreboard) {
   topButton.disabled = !top || !networkState.graph.nodes.some((node) => node.id === top.session_id);
   topButton.onclick = () => focusNode(topButton.dataset.nodeId);
   const nodeIds = new Set(networkState.graph.nodes.map((node) => node.id));
-  document.querySelector("#rescue-ranking").innerHTML = ranking
+  const remainingRanking = ranking.slice(1);
+  document.querySelector("#rescue-ranking").innerHTML = remainingRanking
     .map((item) => {
       const linked = item.session_id && nodeIds.has(item.session_id);
       return `<button type="button" class="score-ranking-item${linked ? " linked" : ""}" data-node-id="${safe(item.session_id || "")}" ${linked ? "" : "disabled"}><b>${String(item.rank).padStart(2, "0")}</b><strong>${safe(item.nickname)}</strong><em>${Number(item.score) || 0}</em><i>${safe(item.rank_label || "E")}</i></button>`;
     })
-    .join("") || '<p>最初のレスキュー隊を待っています</p>';
+    .join("") || (top ? "" : '<p>最初のレスキュー隊を待っています</p>');
   document.querySelectorAll(".score-ranking-item.linked").forEach((element) => {
     element.addEventListener("click", () => focusNode(element.dataset.nodeId));
   });
