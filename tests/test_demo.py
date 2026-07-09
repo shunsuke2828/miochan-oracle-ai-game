@@ -271,10 +271,6 @@ class RescueScoreTests(unittest.TestCase):
             service.scoreboard()["latest"]["score"],
             service.result(session["session_id"])["final_score"],
         )
-        self.assertEqual(
-            service.scoreboard()["standings"][0]["session_id"],
-            session["session_id"],
-        )
         self.assertEqual(service.standing(session["session_id"])["position"], 1)
         self.assertEqual(
             service.standing(session["session_id"])["score"],
@@ -291,18 +287,6 @@ class RescueScoreTests(unittest.TestCase):
         self.assertEqual(service.state(session["session_id"])["challenge_type"], "quiz_02")
         self.assertEqual(result["challenge_type"], "quiz_02")
         self.assertEqual(result["mio_message"], CHALLENGES["quiz_02"]["message"])
-
-    def test_scoreboard_keeps_all_public_standings_for_rescue_pairs(self) -> None:
-        service = MemoryRescueService(MemoryRepository())
-        for index in range(6):
-            session = service.start(f"ペア候補{index}", True, True)
-            service._games[session["session_id"]]["deadline_at"] = (
-                datetime.now(timezone.utc) - timedelta(seconds=1)
-            )
-            service.finish(session["session_id"])
-        scoreboard = service.scoreboard()
-        self.assertEqual(len(scoreboard["ranking"]), 5)
-        self.assertEqual(len(scoreboard["standings"]), 6)
 
 
 class RepositoryTests(unittest.TestCase):
@@ -333,7 +317,6 @@ class RepositoryTests(unittest.TestCase):
         game["deadline_at"] = datetime.now(timezone.utc) - timedelta(seconds=1)
         service.finish(session["session_id"])
         self.assertEqual(service.scoreboard()["ranking"], [])
-        self.assertEqual(service.scoreboard()["standings"], [])
 
     def test_complete_experience(self) -> None:
         repository = MemoryRepository()

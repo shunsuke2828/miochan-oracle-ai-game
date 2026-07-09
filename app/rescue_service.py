@@ -612,6 +612,7 @@ class AdbRescueService:
                       and d.ranking_consent = 1
                       and (d.expires_at is null or d.expires_at > systimestamp)
                     order by s.final_score desc, s.ended_at asc
+                    fetch first 5 rows only
                     """
                 )
                 ranking_rows = cursor.fetchall()
@@ -640,7 +641,7 @@ class AdbRescueService:
                     """
                 )
                 completed = int(cursor.fetchone()[0])
-        standings = [
+        ranking = [
             {
                 "rank": index,
                 "nickname": row[0],
@@ -650,7 +651,6 @@ class AdbRescueService:
             }
             for index, row in enumerate(ranking_rows, start=1)
         ]
-        ranking = standings[:5]
         return {
             "top_score": ranking[0]["score"] if ranking else 0,
             "latest": (
@@ -663,7 +663,6 @@ class AdbRescueService:
                 if latest else None
             ),
             "ranking": ranking,
-            "standings": standings,
             "completed_games": completed,
         }
 
@@ -1579,8 +1578,7 @@ class MemoryRescueService:
             if game["status"] == "finished" and game.get("ranking_consent", False)
         ]
         finished.sort(key=lambda item: (-item["result"]["final_score"], item["result"]["ended_at"]))
-        standings = [{"rank": index, "nickname": game["nickname"], "score": game["result"]["final_score"], "rank_label": game["result"]["rank_label"], "session_id": game["session_id"]} for index, game in enumerate(finished, 1)]
-        ranking = standings[:5]
+        ranking = [{"rank": index, "nickname": game["nickname"], "score": game["result"]["final_score"], "rank_label": game["result"]["rank_label"], "session_id": game["session_id"]} for index, game in enumerate(finished[:5], 1)]
         latest_game = max(finished, key=lambda item: item["result"]["ended_at"], default=None)
         latest = None
         if latest_game:
@@ -1590,7 +1588,7 @@ class MemoryRescueService:
                 "rank_label": latest_game["result"]["rank_label"],
                 "session_id": latest_game["session_id"],
             }
-        return {"top_score": ranking[0]["score"] if ranking else 0, "latest": latest, "ranking": ranking, "standings": standings, "completed_games": len(finished)}
+        return {"top_score": ranking[0]["score"] if ranking else 0, "latest": latest, "ranking": ranking, "completed_games": len(finished)}
 
     def standing(self, session_id: str) -> dict[str, Any] | None:
         finished = [

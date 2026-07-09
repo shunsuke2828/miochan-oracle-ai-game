@@ -3,7 +3,6 @@ const participantDetailCache = new Map();
 const networkState = {
   graph: { nodes: [], edges: [] },
   selectedId: null,
-  rescueStandings: new Map(),
   force3d: null,
   graph3dSignature: "",
   labelFrame: null,
@@ -71,11 +70,6 @@ async function refreshDisplay() {
     document.querySelector("#completed-count").textContent = stats.completed;
     document.querySelector("#type-count").textContent = Object.keys(stats.persona_counts).length || 6;
     document.querySelector("#display-data-mode").textContent = `DATA MODE — ${stats.data_mode.toUpperCase()}`;
-    networkState.rescueStandings = new Map(
-      (scoreboard.standings || scoreboard.ranking || [])
-        .filter((item) => item.session_id)
-        .map((item) => [item.session_id, item]),
-    );
     renderLegend(stats.personas, stats.persona_counts);
     renderNetwork(graph);
     renderScoreboard(scoreboard);
@@ -176,59 +170,6 @@ function renderNetwork(graph) {
 
 function graphEndpointId(value) {
   return typeof value === "object" && value !== null ? value.id : value;
-}
-
-function rescuePairFor(selectedId) {
-  const selectedStanding = networkState.rescueStandings.get(selectedId);
-  if (!selectedId || !selectedStanding) return null;
-  const nodes = new Map(networkState.graph.nodes.map((node) => [node.id, node]));
-  const candidates = networkState.graph.edges
-    .filter((edge) => (
-      graphEndpointId(edge.source) === selectedId || graphEndpointId(edge.target) === selectedId
-    ))
-    .map((edge) => {
-      const sourceId = graphEndpointId(edge.source);
-      const targetId = graphEndpointId(edge.target);
-      const partnerId = sourceId === selectedId ? targetId : sourceId;
-      const standing = networkState.rescueStandings.get(partnerId);
-      const node = nodes.get(partnerId);
-      if (!standing || !node) return null;
-      const similarity = Number(edge.similarity) || 0;
-      const scoreGap = Number(standing.score) - Number(selectedStanding.score);
-      const mentor = scoreGap >= 5;
-      const scoreFactor = mentor
-        ? Math.min(1, Math.max(0, Number(standing.score) / 100))
-        : 1 - Math.min(1, Math.abs(scoreGap) / 100);
-      return {
-        edge,
-        node,
-        standing,
-        similarity,
-        scoreGap,
-        mentor,
-        pairingScore: similarity * (mentor ? 0.7 : 0.75) + scoreFactor * (mentor ? 0.3 : 0.25),
-      };
-    })
-    .filter(Boolean);
-  if (!candidates.length) return null;
-  const mentors = candidates.filter((item) => item.mentor);
-  const pool = mentors.length ? mentors : candidates;
-  const pair = pool.sort((left, right) => right.pairingScore - left.pairingScore)[0];
-  return {
-    ...pair,
-    kind: pair.mentor ? "mentor" : "buddy",
-    label: pair.mentor ? "レスキューメンター" : "レスキューバディ",
-    color: pair.mentor ? "#e6a126" : "#ef6f86",
-    reason: pair.mentor
-      ? "価値観が近く、ゲームで一歩先を走る相談相手です"
-      : "価値観とゲームスコアが近く、一緒に振り返りやすい相手です",
-  };
-}
-
-function edgeIsRescuePair(edge, pair) {
-  if (!edge || !pair) return false;
-  const endpoints = new Set([graphEndpointId(edge.source), graphEndpointId(edge.target)]);
-  return endpoints.has(networkState.selectedId) && endpoints.has(pair.node.id);
 }
 
 function renderNetwork3D(graph) {
@@ -369,7 +310,6 @@ function focusNode(nodeId) {
 
 function applySelection() {
   const selectedId = networkState.selectedId;
-  const rescuePair = rescuePairFor(selectedId);
   const connectedIds = new Set();
   if (selectedId) {
     connectedIds.add(selectedId);
@@ -403,11 +343,8 @@ function applySelection() {
     const highlighted = Boolean(selectedId) && link && (
       graphEndpointId(link.source) === selectedId || graphEndpointId(link.target) === selectedId
     );
-    const paired = edgeIsRescuePair(link, rescuePair);
     element.style.display = highlighted ? "" : "none";
     element.classList.toggle("selected", highlighted);
-    element.classList.toggle("rescue-mentor", paired && rescuePair.kind === "mentor");
-    element.classList.toggle("rescue-buddy", paired && rescuePair.kind === "buddy");
     element.classList.remove("dimmed");
   });
   if (networkState.force3d) {
@@ -416,16 +353,14 @@ function applySelection() {
         if (!selectedId || connectedIds.has(node.id)) return node.color;
         return "#c8c2ba";
       })
-      .nodeVal((node) => node.id === selectedId ? 9 : node.id === rescuePair?.node.id ? 8.5 : connectedIds.has(node.id) ? 7 : 5)
+      .nodeVal((node) => node.id === selectedId ? 9 : connectedIds.has(node.id) ? 7 : 5)
       .linkColor((link) => {
-        if (edgeIsRescuePair(link, rescuePair)) return rescuePair.color;
         const highlighted = selectedId && (
           graphEndpointId(link.source) === selectedId || graphEndpointId(link.target) === selectedId
         );
         return highlighted ? "#c74634" : "#9aa6b5";
       })
       .linkWidth((link) => {
-        if (edgeIsRescuePair(link, rescuePair)) return 5.2;
         const highlighted = selectedId && (
           graphEndpointId(link.source) === selectedId || graphEndpointId(link.target) === selectedId
         );
@@ -477,7 +412,6 @@ function drawConnections() {
   context.setTransform(ratio, 0, 0, ratio, 0, 0);
   context.clearRect(0, 0, canvasWidth, canvasHeight);
   const nodes = new Map(networkState.graph.nodes.map((node) => [node.id, node]));
-  const rescuePair = rescuePairFor(networkState.selectedId);
 
   networkState.graph.edges.forEach((edge) => {
     const source = nodes.get(edge.source);
@@ -485,10 +419,9 @@ function drawConnections() {
     if (!source || !target) return;
     const isSelectedEdge = networkState.selectedId &&
       (edge.source === networkState.selectedId || edge.target === networkState.selectedId);
-    const isRescuePair = edgeIsRescuePair(edge, rescuePair);
     const isDimmed = networkState.selectedId && !isSelectedEdge;
     const alpha = isDimmed ? 0.04 : isSelectedEdge ? 0.96 : 0.46;
-    const lineWidth = isRescuePair ? 5.2 : isSelectedEdge ? 2.8 + (edge.similarity - 0.45) * 5 : 1.8;
+    const lineWidth = isSelectedEdge ? 2.8 + (edge.similarity - 0.45) * 5 : 1.8;
     const sourceX = source.x / 100 * canvasWidth;
     const sourceY = source.y / 100 * canvasHeight;
     const targetX = target.x / 100 * canvasWidth;
@@ -496,8 +429,8 @@ function drawConnections() {
     const midpointX = (sourceX + targetX) / 2;
     const midpointY = (sourceY + targetY) / 2 - Math.min(28, Math.abs(targetX - sourceX) * 0.06);
     const gradient = context.createLinearGradient(sourceX, sourceY, targetX, targetY);
-    gradient.addColorStop(0, colorWithAlpha(isRescuePair ? rescuePair.color : source.color, alpha));
-    gradient.addColorStop(1, colorWithAlpha(isRescuePair ? rescuePair.color : target.color, alpha));
+    gradient.addColorStop(0, colorWithAlpha(source.color, alpha));
+    gradient.addColorStop(1, colorWithAlpha(target.color, alpha));
 
     context.beginPath();
     context.moveTo(sourceX, sourceY);
@@ -528,7 +461,6 @@ async function renderConnectionDetail(selectedId) {
     }))
     .filter((item) => item.node)
     .sort((left, right) => right.similarity - left.similarity);
-  const rescuePair = rescuePairFor(selectedId);
 
   const render = (participantDetail = null, loading = false) => {
     const persona = participantDetail?.persona || {
@@ -559,19 +491,6 @@ async function renderConnectionDetail(selectedId) {
           <i aria-label="ランク ${safe(rescueRanking.rank_label || "E")}">${safe(rescueRanking.rank_label || "E")}</i>
         </div>` : '<p class="rescue-standing-empty">ゲーム未完了またはランキング未登録</p>'}
     </section>
-    <section class="rescue-pair-section" data-kind="${safe(rescuePair?.kind || "none")}">
-      <div class="connection-kicker">RESCUE PAIR</div>
-      ${rescuePair ? `
-        <button type="button" class="rescue-pair-card" data-node-id="${safe(rescuePair.node.id)}" style="--pair-color:${safe(rescuePair.color)}">
-          <span class="rescue-pair-icon">${safe(rescuePair.node.icon)}</span>
-          <span class="rescue-pair-copy">
-            <small>${safe(rescuePair.label)}</small>
-            <strong>${safe(rescuePair.node.nickname)}</strong>
-            <em>${safe(rescuePair.reason)}</em>
-          </span>
-          <span class="rescue-pair-stats"><b>${Math.round(rescuePair.similarity * 100)}%</b><small>価値観</small><b>${Number(rescuePair.standing.score) || 0}</b><small>${Number(rescuePair.standing.rank) || "—"}位</small></span>
-        </button>` : '<p class="rescue-standing-empty">ランキング公開済みの近い参加者が揃うとペアを提案します</p>'}
-    </section>
     <div class="connection-list">
       ${neighbors.map((item) => `
         <button type="button" data-node-id="${safe(item.node.id)}" style="--connection-color:${safe(item.node.color)}">
@@ -596,9 +515,6 @@ async function renderConnectionDetail(selectedId) {
         <pre>${safe(vectorText)}</pre>` : '<p class="vector-loading">ベクトル値を取得できませんでした</p>'}
     </section>`;
     detail.querySelector(".connection-close").addEventListener("click", () => selectNode(selectedId));
-    detail.querySelector(".rescue-pair-card")?.addEventListener("click", (event) => {
-      focusNode(event.currentTarget.dataset.nodeId);
-    });
     detail.querySelectorAll(".connection-list button").forEach((element) => {
       element.addEventListener("click", () => focusNode(element.dataset.nodeId));
     });
