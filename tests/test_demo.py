@@ -39,6 +39,14 @@ from app.rescue_service import (
 
 
 class EmbeddingTests(unittest.TestCase):
+    def test_score_tower_is_an_unlinked_projection_mock(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        mock = (root / "static" / "display-score-tower.html").read_text()
+        self.assertIn("VALUE × RESCUE SCORE TOWER", mock)
+        self.assertIn("score-tower.js", mock)
+        self.assertNotIn("display-score-tower", (root / "static" / "index.html").read_text())
+        self.assertNotIn("display-score-tower", (root / "static" / "display.html").read_text())
+
     def test_why_oracle_page_documents_the_live_architecture(self) -> None:
         page = (Path(__file__).resolve().parents[1] / "static" / "why-oracle.html").read_text()
         self.assertIn("DBMS_CLOUD_AI.GENERATE", page)
@@ -276,6 +284,7 @@ class RescueScoreTests(unittest.TestCase):
             service.standing(session["session_id"])["score"],
             service.result(session["session_id"])["final_score"],
         )
+        self.assertEqual(service.standings()[0]["session_id"], session["session_id"])
 
     def test_quiz_advances_to_the_next_curated_question(self) -> None:
         service = MemoryRescueService(MemoryRepository())

@@ -119,6 +119,11 @@ def display() -> FileResponse:
     return FileResponse(static_dir / "display.html")
 
 
+@app.get("/display-score-tower", include_in_schema=False)
+def display_score_tower() -> FileResponse:
+    return FileResponse(static_dir / "display-score-tower.html")
+
+
 @app.get("/why-oracle", include_in_schema=False)
 def why_oracle() -> FileResponse:
     return FileResponse(static_dir / "why-oracle.html")
@@ -266,6 +271,19 @@ def rescue_scoreboard() -> dict[str, Any]:
     except Exception as exc:
         LOGGER.exception("rescue scoreboard failed")
         raise HTTPException(status_code=503, detail="ランキングを取得できませんでした") from exc
+
+
+@app.get("/api/mio/venue/score-tower")
+def rescue_score_tower() -> dict[str, Any]:
+    try:
+        standings = getattr(state.rescue, "standings", None)
+        return {
+            "standings": standings() if callable(standings) else [],
+            "data_mode": state.repository.mode,
+        }
+    except Exception as exc:
+        LOGGER.exception("rescue score tower failed")
+        raise HTTPException(status_code=503, detail="スコアタワーを取得できませんでした") from exc
 
 
 @app.post("/api/sessions")

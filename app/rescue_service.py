@@ -697,6 +697,37 @@ class AdbRescueService:
             "rank_label": row[2],
         }
 
+    def standings(self) -> list[dict[str, Any]]:
+        """Return every consented, non-expired public game standing."""
+        with self.repository.connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    select s.session_id, p.nickname, s.final_score, s.rank_label,
+                           row_number() over (
+                             order by s.final_score desc, s.ended_at asc
+                           ) as ranking_position
+                    from mio_game_sessions s
+                    join mio_players p on p.player_id = s.player_id
+                    join mio_demo_sessions d on d.session_id = s.session_id
+                    where s.status = 'finished'
+                      and d.ranking_consent = 1
+                      and (d.expires_at is null or d.expires_at > systimestamp)
+                    order by s.final_score desc, s.ended_at asc
+                    """
+                )
+                rows = cursor.fetchall()
+        return [
+            {
+                "session_id": row[0],
+                "nickname": row[1],
+                "score": int(row[2]),
+                "rank_label": row[3],
+                "rank": int(row[4]),
+            }
+            for row in rows
+        ]
+
     def detail(self, session_id: str) -> dict[str, Any] | None:
         with self.repository.connection() as connection:
             with connection.cursor() as cursor:
@@ -1604,6 +1635,23 @@ class MemoryRescueService:
                     "rank_label": game["result"]["rank_label"],
                 }
         return None
+
+    def standings(self) -> list[dict[str, Any]]:
+        finished = [
+            game for game in self._games.values()
+            if game["status"] == "finished" and game.get("ranking_consent", False)
+        ]
+        finished.sort(key=lambda item: (-item["result"]["final_score"], item["result"]["ended_at"]))
+        return [
+            {
+                "session_id": game["session_id"],
+                "nickname": game["nickname"],
+                "score": game["result"]["final_score"],
+                "rank_label": game["result"]["rank_label"],
+                "rank": index,
+            }
+            for index, game in enumerate(finished, start=1)
+        ]
 
     def detail(self, session_id: str) -> dict[str, Any] | None:
         game = self._games.get(session_id)

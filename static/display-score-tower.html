@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f6f1ea" />
+    <title>価値観 × レスキュースコア — Score Tower Mock</title>
+    <link rel="stylesheet" href="static/styles.css?v=34" />
+    <link rel="stylesheet" href="static/score-tower.css?v=1" />
+  </head>
+  <body class="score-tower-body">
+    <header class="score-tower-header">
+      <div class="brand"><img class="oracle-logo" src="assets/brand/oracle-logo.png?v=1" width="96" height="30" alt="Oracle" /><span class="brand-divider"></span><span class="brand-sub">AI EXPERIENCE</span></div>
+      <div class="score-tower-heading"><span>PROJECTION MOCK</span><strong>VALUE × RESCUE SCORE TOWER</strong></div>
+      <div class="score-tower-live"><i></i> LIVE PROTOTYPE</div>
+    </header>
+
+    <main class="score-tower-shell">
+      <section class="score-tower-card">
+        <div id="score-tower-3d" class="score-tower-3d" aria-label="横方向が価値観、縦方向がゲームスコアの3Dマップ"></div>
+        <div id="score-tower-labels" class="score-tower-labels" aria-hidden="true"></div>
+        <div class="score-tower-copy">
+          <span>ORACLE VECTOR × GAME SCORE</span>
+          <h1>近い価値観が、<br /><em>スコアの高さ</em>で立ち上がる。</h1>
+          <p>横・奥行き＝理想の上司への回答&nbsp;&nbsp;／&nbsp;&nbsp;高さ＝60秒ゲームの固定スコア</p>
+        </div>
+        <div class="score-tower-hint">ドラッグで回転・ホイールで拡大縮小 <b>→</b> ニックネームを選択</div>
+        <div class="score-tower-controls" aria-label="マップ表示操作">
+          <button type="button" id="tower-zoom-out" aria-label="縮小">−</button>
+          <output>3D</output>
+          <button type="button" id="tower-zoom-in" aria-label="拡大">＋</button>
+          <button type="button" id="tower-zoom-reset" aria-label="表示を戻す">↺</button>
+        </div>
+        <div class="score-axis" aria-label="スコアとランクの高さ">
+          <span style="--axis-y:10%"><b>A</b><em>90–100</em></span>
+          <span style="--axis-y:27%"><b>B</b><em>75–89</em></span>
+          <span style="--axis-y:47%"><b>C</b><em>55–74</em></span>
+          <span style="--axis-y:67%"><b>D</b><em>35–54</em></span>
+          <span style="--axis-y:86%"><b>E</b><em>0–34</em></span>
+        </div>
+        <div id="score-tower-detail" class="score-tower-detail" hidden></div>
+      </section>
+
+      <aside class="score-tower-sidebar">
+        <section class="tower-explain-card">
+          <span class="tower-kicker">HOW TO READ</span>
+          <h2>この立体地図の見方</h2>
+          <div class="tower-rule"><b>01</b><span><strong>横・奥行き</strong><small>Oracleのコサイン距離をMDSで近似。回答が似た人ほど近く。</small></span></div>
+          <div class="tower-rule accent"><b>02</b><span><strong>高さ</strong><small>60秒ゲームの0〜100点を固定スケールで反映。</small></span></div>
+          <div class="tower-rule"><b>03</b><span><strong>線</strong><small>従来どおり、価値観が近い参加者をOracleの実測距離で接続。</small></span></div>
+        </section>
+        <section class="tower-stats-card">
+          <span class="tower-kicker">LIVE DATA</span>
+          <div class="tower-stats"><span><strong id="tower-people">—</strong><small>MAP PEOPLE</small></span><span><strong id="tower-scored">—</strong><small>SCORED</small></span></div>
+          <div class="tower-ranking-title">SCORE TOP 5</div>
+          <div id="tower-ranking" class="tower-ranking"></div>
+        </section>
+        <section class="tower-note-card">
+          <b>同じ回答なら？</b>
+          <p>横位置はほぼ同じでも、ゲームスコアが違えば上下に分かれます。価値観とゲーム結果を混同せず、同時に眺められるモックです。</p>
+        </section>
+      </aside>
+    </main>
+
+    <footer class="score-tower-footer"><span>SEMANTIC POSITION — ORACLE VECTOR_DISTANCE</span><i></i><span>VERTICAL POSITION — RESCUE SCORE</span><b id="tower-data-mode">DATA MODE —</b></footer>
+    <script src="static/vendor/3d-force-graph-1.80.0.min.js" defer></script>
+    <script src="static/score-tower.js?v=1" defer></script>
+  </body>
+</html>
