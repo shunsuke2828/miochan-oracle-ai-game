@@ -435,6 +435,8 @@ def network_participant_detail(session_id: str) -> dict[str, Any]:
             (item for item in PERSONAS if item.name == participant.get("persona_name")),
             None,
         )
+        standing = getattr(state.rescue, "standing", None)
+        rescue_ranking = standing(session_id) if callable(standing) else None
         return {
             "session_id": session_id,
             "nickname": participant["nickname"],
@@ -453,6 +455,7 @@ def network_participant_detail(session_id: str) -> dict[str, Any]:
                 "operation": embedding.get("operation", "DBMS_VECTOR_CHAIN.UTL_TO_EMBEDDING"),
                 "values": embedding.get("values", []),
             },
+            "rescue_ranking": rescue_ranking,
         }
     except (KeyError, ValueError) as exc:
         raise HTTPException(status_code=404, detail="公開参加者が見つかりません") from exc

@@ -419,6 +419,7 @@ async function renderConnectionDetail(selectedId) {
       description: selected.persona_description,
     };
     const embedding = participantDetail?.embedding;
+    const rescueRanking = participantDetail?.rescue_ranking;
     const vectorText = embedding?.values?.length
       ? `[${embedding.values.map((value) => Number(value).toFixed(7)).join(", ")}]`
       : "";
@@ -431,6 +432,15 @@ async function renderConnectionDetail(selectedId) {
     <section class="persona-detail" style="--persona-color:${safe(selected.color)}">
       <b>${safe(persona.tagline || "")}</b>
       <p>${safe(persona.description || "")}</p>
+    </section>
+    <section class="rescue-standing">
+      <div class="connection-kicker">RESCUE RANKING</div>
+      ${loading ? '<p class="rescue-standing-empty">ランキング情報を読み込み中…</p>' : rescueRanking ? `
+        <div class="rescue-standing-card">
+          <span><small>会場順位</small><strong>${Number(rescueRanking.position) === 1 ? "👑 " : ""}${Number(rescueRanking.position)}位</strong></span>
+          <span><small>SCORE</small><strong>${Number(rescueRanking.score) || 0}</strong></span>
+          <i aria-label="ランク ${safe(rescueRanking.rank_label || "E")}">${safe(rescueRanking.rank_label || "E")}</i>
+        </div>` : '<p class="rescue-standing-empty">ゲーム未完了またはランキング未登録</p>'}
     </section>
     <div class="connection-list">
       ${neighbors.map((item) => `

@@ -271,6 +271,11 @@ class RescueScoreTests(unittest.TestCase):
             service.scoreboard()["latest"]["score"],
             service.result(session["session_id"])["final_score"],
         )
+        self.assertEqual(service.standing(session["session_id"])["position"], 1)
+        self.assertEqual(
+            service.standing(session["session_id"])["score"],
+            service.result(session["session_id"])["final_score"],
+        )
 
     def test_quiz_advances_to_the_next_curated_question(self) -> None:
         service = MemoryRescueService(MemoryRepository())
