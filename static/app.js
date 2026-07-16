@@ -7,6 +7,7 @@ const state = {
   deadlineAt: null,
   timerHandle: null,
   rescuePollHandle: null,
+  rescueResultPollHandle: null,
   rescueTurn: 1,
   rescueBusy: false,
   rescueFinishing: false,
@@ -19,41 +20,175 @@ const state = {
 };
 const rescueStorageKey = "mio-rescue-session";
 
-const surveyExampleTexts = [
-  "目的を伝えたら、細かく口を出さず任せてくれる上司",
-  "困ったときに相談しやすく、最後まで話を聞いてくれる上司",
-  "目標と優先順位を明確に示してくれる上司",
-  "失敗を責めず、次にどう活かすか一緒に考える上司",
-  "良かった点と改善点を具体的にフィードバックする上司",
-  "メンバーの強みを見つけ、活かせる仕事を任せる上司",
-  "必要なときは素早く決断し、責任を引き受ける上司",
-  "自分と異なる意見でも、まず受け止めてくれる上司",
-  "チーム全員を公平に扱い、えこひいきをしない上司",
-  "挑戦したい気持ちを応援し、機会をつくってくれる上司",
-  "忙しいときほど落ち着いて、状況を整理してくれる上司",
-  "現場の事情を理解し、無理な期限を押しつけない上司",
-  "成果だけでなく、努力や成長の過程も見てくれる上司",
-  "率直に話せて、言いにくいことも安心して相談できる上司",
-  "方針が変わるとき、理由と背景をきちんと説明する上司",
-  "仕事を抱え込まず、チームを信頼して任せる上司",
-  "メンバー同士をつなぎ、協力しやすくしてくれる上司",
-  "一人ひとりのキャリアや将来について考えてくれる上司",
-  "仕事と生活の事情を尊重し、柔軟に対応する上司",
-  "判断基準が一貫していて、言うことが頻繁に変わらない上司",
-  "自分の間違いを認め、素直に謝ることができる上司",
-  "会議を短く整理し、次にやることを明確にする上司",
-  "細かな進め方より、期待する成果を伝えてくれる上司",
-  "相談には答えを押しつけず、考えるヒントをくれる上司",
-  "チームの成功を自分の手柄にせず、みんなを称える上司",
-  "問題が起きたとき、部下を守りながら解決に動く上司",
-  "新しいアイデアを面白がり、まず試してみようと言う上司",
-  "静かに考える時間を尊重し、返事を急かさない上司",
-  "感情的に怒らず、事実に基づいて話す上司",
-  "ユーモアがあり、チームが前向きになれる空気をつくる上司",
+const surveyExampleGroups = [
+  // 1つの意味グループから毎回1表現だけを選ぶため、同義文は同時表示されません。
+  // フクロウタイプ — 裁量と、自分で考える余白
+  { id: 'owl_autonomy', persona: 'フクロウタイプ', variants: [
+    "目的だけ共有し、進め方は本人の裁量に任せてくれる上司",
+    "ゴールを示したあとは、細かな手順まで口を出さない上司",
+    "仕事の狙いを伝えたら、自分なりの進め方を尊重してくれる上司",
+  ] },
+  { id: 'owl_pace', persona: 'フクロウタイプ', variants: [
+    "静かに考える時間を尊重し、返事を急かさない上司",
+    "すぐに答えを求めず、考えを整理する時間をくれる上司",
+    "結論を急かさず、自分のペースで考えさせてくれる上司",
+  ] },
+  { id: 'owl_trust', persona: 'フクロウタイプ', variants: [
+    "一度任せた仕事には、必要以上に口を出さない上司",
+    "任せると決めたら、途中で細かく介入しすぎない上司",
+    "信頼して裁量を任せ、必要なときだけ助言してくれる上司",
+  ] },
+  { id: 'owl_hint', persona: 'フクロウタイプ', variants: [
+    "答えを押しつけず、考える時間とヒントをくれる上司",
+    "正解を先に言わず、考える時間とヒントをくれる上司",
+    "困ったときも答えを決めつけず、考えるきっかけをくれる上司",
+  ] },
+  { id: 'owl_focus', persona: 'フクロウタイプ', variants: [
+    "集中している時間を尊重し、不要な確認で邪魔をしない上司",
+    "深く考える仕事では、静かな時間と裁量を守ってくれる上司",
+    "細かな報告を求めすぎず、自分のペースで集中させてくれる上司",
+  ] },
+
+  // イルカタイプ — 人と組織をつなぐ力
+  { id: 'dolphin_cross_team', persona: 'イルカタイプ', variants: [
+    "部署を越えて必要な人をつなぎ、協力を集めてくれる上司",
+    "部門の壁を越えて人をつなぎ、連携を後押しする上司",
+    "別部署とも橋渡しをして、必要な協力を引き出す上司",
+  ] },
+  { id: 'dolphin_expert', persona: 'イルカタイプ', variants: [
+    "困ったとき、その分野に詳しい専門家を紹介してくれる上司",
+    "自分だけで抱えず、詳しい人や専門家につないでくれる上司",
+    "課題に合う専門家を見つけ、相談の場をつくってくれる上司",
+  ] },
+  { id: 'dolphin_bridge', persona: 'イルカタイプ', variants: [
+    "チーム同士の橋渡しをして、連携をスムーズにする上司",
+    "関係するチームをつなぎ、協力しやすい流れをつくる上司",
+    "組織間の橋渡し役になり、連携の詰まりを解消する上司",
+  ] },
+  { id: 'dolphin_involve', persona: 'イルカタイプ', variants: [
+    "立場を越えて周囲を巻き込み、一緒に進めてくれる上司",
+    "必要な人を柔軟に巻き込み、チームで前に進める上司",
+    "社内外の仲間を巻き込み、協力の輪を広げる上司",
+  ] },
+  { id: 'dolphin_share', persona: 'イルカタイプ', variants: [
+    "情報を抱え込まず、必要な人へ共有して協力を促す上司",
+    "必要な情報を開いて共有し、人と人の連携を助ける上司",
+    "情報の流れを整え、関係者が協力しやすくする上司",
+  ] },
+
+  // 小鳥タイプ — 対話とチームの納得感
+  { id: 'bird_listen', persona: '小鳥タイプ', variants: [
+    "自分と異なる意見でも、まず話を聞き、対話してくれる上司",
+    "反対意見もいったん受け止め、対話から考えてくれる上司",
+    "意見が違っても遮らず、最後まで話を聞いてくれる上司",
+  ] },
+  { id: 'bird_fair', persona: '小鳥タイプ', variants: [
+    "チーム全員を公平に扱い、えこひいきをしない上司",
+    "立場に関係なく、みんなを公平に尊重してくれる上司",
+    "声の大きさに左右されず、全員の意見を公平に扱う上司",
+  ] },
+  { id: 'bird_consensus', persona: '小鳥タイプ', variants: [
+    "みんなの意見を聞き、対話しながら答えをつくる上司",
+    "チームで対話を重ね、納得できる答えを一緒につくる上司",
+    "一方的に決めず、みんなの意見から結論をまとめる上司",
+  ] },
+  { id: 'bird_voice', persona: '小鳥タイプ', variants: [
+    "会議でチーム全員が話せるよう、発言を促してくれる上司",
+    "発言の少ない人にも声をかけ、全員の話を聞く上司",
+    "会議で誰も置いていかず、みんなが話せる場をつくる上司",
+  ] },
+  { id: 'bird_credit', persona: '小鳥タイプ', variants: [
+    "チームの成功を自分の手柄にせず、みんなを称える上司",
+    "成果を独り占めせず、チーム全員の貢献を称える上司",
+    "良い結果が出たとき、関わったみんなに感謝を伝える上司",
+  ] },
+
+  // 猫タイプ — 柔軟な働き方と安心感
+  { id: 'cat_life', persona: '猫タイプ', variants: [
+    "仕事と生活の事情を尊重し、柔軟に対応する上司",
+    "家庭や生活の状況を理解し、働き方を柔軟に調整する上司",
+    "仕事だけでなく生活も大切にし、無理のない働き方を認める上司",
+  ] },
+  { id: 'cat_health', persona: '猫タイプ', variants: [
+    "体調が悪いときに無理をさせず、安心して休ませてくれる上司",
+    "体調を気づかい、無理せず休める安心感をつくる上司",
+    "不調のときは仕事より回復を優先し、休ませてくれる上司",
+  ] },
+  { id: 'cat_remote', persona: '猫タイプ', variants: [
+    "家庭の事情に合わせ、リモートなど柔軟な働き方を認める上司",
+    "事情に応じてリモートや時間変更を柔軟に選ばせてくれる上司",
+    "場所や時間に縛りすぎず、柔軟な働き方を支える上司",
+  ] },
+  { id: 'cat_support', persona: '猫タイプ', variants: [
+    "困ったときは支え、普段は信頼して見守ってくれる上司",
+    "必要なときには助け、普段は安心して見守ってくれる上司",
+    "いつも干渉せず、普段は見守り、困った瞬間にはそっと支える上司",
+  ] },
+  { id: 'cat_workload', persona: '猫タイプ', variants: [
+    "忙しい時期でも無理な期限を押しつけず、負担を調整する上司",
+    "仕事が重なったとき、無理が出ないよう負担を柔軟に見直す上司",
+    "無理が続かないよう、業務量と締切を調整してくれる上司",
+  ] },
+
+  // 鷹タイプ — 明確な判断と優先順位
+  { id: 'hawk_priority', persona: '鷹タイプ', variants: [
+    "目標と優先順位を明確に示してくれる上司",
+    "何を目指し、何から進めるかを明確にする上司",
+    "チームの目標と仕事の優先順位をはっきり示す上司",
+  ] },
+  { id: 'hawk_decision', persona: '鷹タイプ', variants: [
+    "必要なときは素早く決断し、責任を引き受ける上司",
+    "迷う場面でも素早く判断し、その決断に責任を持つ上司",
+    "重要な局面で方針を決断し、責任を背負ってくれる上司",
+  ] },
+  { id: 'hawk_meeting', persona: '鷹タイプ', variants: [
+    "会議を短く整理し、次にやることを明確にする上司",
+    "議論を整理して、会議後の行動を明確に決める上司",
+    "会議の結論と次にやる担当を、その場で明確にする上司",
+  ] },
+  { id: 'hawk_policy', persona: '鷹タイプ', variants: [
+    "判断基準が一貫していて、迷わず方針を示す上司",
+    "一貫した判断軸を持ち、進む方針を明確に伝える上司",
+    "状況が変わっても判断基準を説明し、方針を示す上司",
+  ] },
+  { id: 'hawk_role', persona: '鷹タイプ', variants: [
+    "役割と期限をはっきり決め、成果まで導いてくれる上司",
+    "誰がいつまでに何をするかを明確に決める上司",
+    "役割・期限・期待する成果を最初にはっきり示す上司",
+  ] },
+
+  // クマタイプ — 挑戦と成長を長い目で支える力
+  { id: 'bear_failure', persona: 'クマタイプ', variants: [
+    "失敗を学びに変え、次の挑戦を応援してくれる上司",
+    "失敗を責めるより学びを見つけ、再挑戦を応援する上司",
+    "うまくいかなかった経験を成長に変え、次の挑戦を支える上司",
+  ] },
+  { id: 'bear_feedback', persona: 'クマタイプ', variants: [
+    "良かった点と改善点を具体的にフィードバックする上司",
+    "成長につながるよう、強みと改善点を具体的に伝える上司",
+    "次に活かせるフィードバックを、わかりやすく返してくれる上司",
+  ] },
+  { id: 'bear_strength', persona: 'クマタイプ', variants: [
+    "メンバーの強みを見つけ、成長できる仕事を任せる上司",
+    "一人ひとりの強みを伸ばせる仕事と学びの機会をくれる上司",
+    "得意なことを見つけ、さらに成長できる役割を任せる上司",
+  ] },
+  { id: 'bear_challenge', persona: 'クマタイプ', variants: [
+    "挑戦したい気持ちを応援し、新しい機会をつくってくれる上司",
+    "やってみたい挑戦を後押しし、実践の機会をくれる上司",
+    "新しいことへ挑戦できるよう、背中を押してくれる上司",
+  ] },
+  { id: 'bear_career', persona: 'クマタイプ', variants: [
+    "一人ひとりのキャリアを考え、長い目で育ててくれる上司",
+    "目先の成果だけでなく、将来のキャリアと成長を支える上司",
+    "本人のキャリアを一緒に考え、長期的に育ててくれる上司",
+  ] },
 ];
 
 function shuffledSurveyExamples() {
-  const examples = [...surveyExampleTexts];
+  const examples = surveyExampleGroups.map((group) => (
+    group.variants[Math.floor(Math.random() * group.variants.length)]
+  ));
   for (let index = examples.length - 1; index > 0; index -= 1) {
     const swapIndex = Math.floor(Math.random() * (index + 1));
     [examples[index], examples[swapIndex]] = [examples[swapIndex], examples[index]];
@@ -295,12 +430,48 @@ function stopRescuePolling() {
   state.rescuePollHandle = null;
 }
 
+function stopRescueResultPolling() {
+  window.clearTimeout(state.rescueResultPollHandle);
+  state.rescueResultPollHandle = null;
+}
+
+function showRescueScoring() {
+  state.rescueFinishing = true;
+  stopRescueTimer();
+  stopRescuePolling();
+  setRescueDisabled(true);
+  const scoringStatus = document.querySelector("#rescue-scoring-status");
+  scoringStatus.textContent = "回答を保存しました。AIがまとめて採点しています";
+  scoringStatus.classList.add("pending");
+  setMioState("running", "アドバイスをまとめて<br>採点しているよ！");
+}
+
+async function pollRescueResult() {
+  stopRescueResultPolling();
+  if (!state.sessionId || !state.rescueFinishing) return;
+  try {
+    const result = await api(`api/mio/sessions/${encodeURIComponent(state.sessionId)}/result`);
+    if (result.status === "finished") {
+      renderRescueResult(result);
+      return;
+    }
+  } catch (_) {
+    // A transient gateway or database error is retried without blocking the UI.
+  }
+  state.rescueResultPollHandle = window.setTimeout(pollRescueResult, 900);
+}
+
 async function pollRescueState() {
   if (!state.sessionId || state.panel !== "rescue" || state.rescueBusy || state.rescueFinishing) return;
   try {
     const current = await api(`api/mio/sessions/${encodeURIComponent(state.sessionId)}`);
     state.rescueTurn = Math.max(state.rescueTurn, current.turn_no);
     renderRescueState(current);
+    if (current.status === "scoring") {
+      showRescueScoring();
+      pollRescueResult();
+      return;
+    }
     if (Number(current.difficulty) === 0 && !current.game_finished) {
       finishRescue();
       return;
@@ -421,14 +592,11 @@ async function finishRescue() {
     window.setTimeout(finishRescue, 300);
     return;
   }
-  state.rescueFinishing = true;
-  stopRescueTimer();
-  stopRescuePolling();
-  setRescueDisabled(true);
-  setMioState("running", "最後の回答をDB内で<br>ベクトル化・採点しています…");
+  showRescueScoring();
   try {
     const result = await api(`api/mio/sessions/${encodeURIComponent(state.sessionId)}/finish`, { method: "POST" });
-    renderRescueResult(result);
+    if (result.status === "finished") renderRescueResult(result);
+    else pollRescueResult();
   } catch (error) {
     state.rescueFinishing = false;
     showToast(error.message);
@@ -440,6 +608,7 @@ function renderRescueResult(result) {
   if (!result) return;
   state.rescueFinishing = false;
   stopRescuePolling();
+  stopRescueResultPolling();
   setPanel("rescue-result");
   const clearedLabel = result.cleared ? "RESCUE COMPLETE" : "TIME UP";
   document.querySelector("#rescue-result-content").innerHTML = `
@@ -626,6 +795,7 @@ document.querySelector("#restart").addEventListener("click", resetExperience);
 function resetExperience() {
   stopRescueTimer();
   stopRescuePolling();
+  stopRescueResultPolling();
   window.clearTimeout(state.inactivityTimer);
   state.sessionId = null;
   state.nickname = "";
@@ -683,6 +853,13 @@ async function restoreRescueSession() {
     state.nickname = current.nickname || saved.nickname || "";
     state.rescueTurn = current.turn_no;
     state.deadlineAt = new Date(current.deadline_at).getTime();
+    if (current.status === "scoring") {
+      setPanel("rescue");
+      renderRescueState(current);
+      showRescueScoring();
+      pollRescueResult();
+      return;
+    }
     if (current.game_finished) {
       const result = await api(`api/mio/sessions/${encodeURIComponent(saved.sessionId)}/result`);
       renderRescueResult(result);

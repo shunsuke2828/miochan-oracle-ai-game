@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import re
 import unittest
+from collections import Counter
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -13,13 +15,16 @@ from app.database import (
     DB_EMBED_REGION,
     DB_EMBED_URL,
     MemoryRepository,
+    _build_network_graph,
     db_embedding_parameters,
 )
 from app.embedding import EMBEDDING_DIMENSION, cosine_similarity, demo_embedding
+from app.models import AdminDeleteRequest
 from app.personas import classify_persona
 from app.rescue import (
     CHALLENGE_ORDER,
     CHALLENGES,
+    RANK_TITLES,
     choices_for,
     fallback_quality,
     final_score,
@@ -30,6 +35,7 @@ from app.rescue import (
     title_for,
 )
 from app.rescue_service import (
+    AdbRescueService,
     MemoryRescueService,
     RescueConflict,
     _json_object,
@@ -38,7 +44,128 @@ from app.rescue_service import (
 )
 
 
+class _QueueCursor:
+    def __init__(self, status: str = "playing") -> None:
+        self.status = status
+        self.rowcount = 0
+        self._row = None
+        self.events: list[str] = []
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_):
+        return False
+
+    def execute(self, sql: str, **_: object) -> None:
+        normalized = " ".join(sql.lower().split())
+        self.rowcount = 0
+        if normalized.startswith("select status, deadline_at, difficulty"):
+            self._row = (
+                self.status,
+                datetime.now(timezone.utc) - timedelta(seconds=1),
+                100,
+            )
+        elif normalized == "select systimestamp from dual":
+            self._row = (datetime.now(timezone.utc),)
+        elif "set status = 'scoring'" in normalized:
+            if self.status == "playing":
+                self.status = "scoring"
+                self.rowcount = 1
+            self._row = None
+        elif "'game_scoring_queued'" in normalized:
+            self.events.append("game_scoring_queued")
+            self.rowcount = 1
+            self._row = None
+        elif "where status = 'scoring'" in normalized and "skip locked" in normalized:
+            self._row = ("queued-session",) if self.status == "scoring" else None
+        else:
+            self._row = None
+
+    def fetchone(self):
+        return self._row
+
+
+class _QueueConnection:
+    def __init__(self, cursor: _QueueCursor) -> None:
+        self._cursor = cursor
+        self.commits = 0
+        self.rollbacks = 0
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_):
+        return False
+
+    def cursor(self) -> _QueueCursor:
+        return self._cursor
+
+    def commit(self) -> None:
+        self.commits += 1
+
+    def rollback(self) -> None:
+        self.rollbacks += 1
+
+
+class _QueueRepository:
+    def __init__(self, status: str = "playing") -> None:
+        self.cursor = _QueueCursor(status)
+        self.connection_value = _QueueConnection(self.cursor)
+
+    def connection(self) -> _QueueConnection:
+        return self.connection_value
+
+
 class EmbeddingTests(unittest.TestCase):
+    def test_survey_examples_are_balanced_across_all_personas(self) -> None:
+        source = (
+            Path(__file__).resolve().parents[1] / "static" / "app.js"
+        ).read_text(encoding="utf-8")
+        block = source.split("const surveyExampleGroups = [", 1)[1].split("\n];", 1)[0]
+        examples = re.findall(r'^\s*"([^"]+)",?$', block, re.MULTILINE)
+        counts = Counter(classify_persona(answer)[0].name for answer in examples)
+
+        self.assertEqual(block.count("variants: ["), 30)
+        self.assertEqual(len(examples), 90)
+        self.assertEqual(set(counts.values()), {15})
+        self.assertEqual(len(counts), 6)
+
+    def test_exact_duplicate_vectors_are_only_separated_visually(self) -> None:
+        answer = "目標と優先順位を明確に示してくれる上司"
+        vector = demo_embedding(answer)
+        sessions = [
+            {
+                "session_id": f"same-{index}",
+                "nickname": f"同じ回答{index}",
+                "public_consent": True,
+                "persona_name": "鷹タイプ",
+                "answer": answer,
+                "vector": vector,
+            }
+            for index in range(3)
+        ]
+        distances = {
+            ("same-0", "same-1"): 0.0,
+            ("same-0", "same-2"): 0.0,
+            ("same-1", "same-2"): 0.0,
+        }
+        graph = _build_network_graph(
+            sessions,
+            oracle_distances=distances,
+            distance_source="Oracle VECTOR_DISTANCE",
+        )
+
+        coordinates = {
+            (node["x3d"], node["y3d"], node["z3d"])
+            for node in graph["nodes"]
+        }
+        self.assertEqual(len(coordinates), 3)
+        self.assertTrue(graph["layout"]["exact_duplicate_visual_offset"])
+        self.assertEqual(graph["layout"]["exact_duplicate_groups"], 1)
+        self.assertTrue(all(edge["distance"] == 0.0 for edge in graph["edges"]))
+        self.assertTrue(all(edge["similarity"] == 1.0 for edge in graph["edges"]))
+
     def test_why_oracle_page_documents_the_live_architecture(self) -> None:
         page = (Path(__file__).resolve().parents[1] / "static" / "why-oracle.html").read_text()
         self.assertIn("DBMS_CLOUD_AI.GENERATE", page)
@@ -190,6 +317,15 @@ class RescueScoreTests(unittest.TestCase):
         self.assertEqual(rank_for(score), "A")
         self.assertEqual(title_for(score, turns), "みおちゃんの親友")
 
+    def test_each_rank_has_a_distinct_title(self) -> None:
+        scores = {"A": 90, "B": 75, "C": 55, "D": 35, "E": 0}
+        titles = {
+            rank: title_for(score, [])
+            for rank, score in scores.items()
+        }
+        self.assertEqual(titles, RANK_TITLES)
+        self.assertEqual(len(set(titles.values())), 5)
+
     def test_rank_scale_is_quality_based_and_count_has_limited_effect(self) -> None:
         low_answers = [
             {"turn_score": 80, "choice_quality": -1}
@@ -289,7 +425,68 @@ class RescueScoreTests(unittest.TestCase):
         self.assertEqual(result["mio_message"], CHALLENGES["quiz_02"]["message"])
 
 
+class AdbQueuedScoringTests(unittest.TestCase):
+    def test_finish_only_queues_and_does_not_run_expensive_scoring(self) -> None:
+        repository = _QueueRepository("playing")
+        service = AdbRescueService(repository)
+
+        def unexpected_scoring(*_: object, **__: object) -> bool:
+            raise AssertionError("finish must not perform final scoring inline")
+
+        service._prepare_final_scores = unexpected_scoring  # type: ignore[method-assign]
+        result = service.finish("queued-session")
+
+        self.assertEqual(result["status"], "scoring")
+        self.assertTrue(result["scoring_pending"])
+        self.assertFalse(result["game_finished"])
+        self.assertEqual(repository.cursor.status, "scoring")
+        self.assertEqual(repository.cursor.events, ["game_scoring_queued"])
+        self.assertEqual(repository.connection_value.commits, 1)
+
+        retry = service.finish("queued-session")
+        self.assertEqual(retry, result)
+        self.assertEqual(repository.cursor.events, ["game_scoring_queued"])
+        self.assertEqual(repository.connection_value.rollbacks, 1)
+
+    def test_dedicated_worker_claims_and_finishes_one_scoring_session(self) -> None:
+        repository = _QueueRepository("scoring")
+        service = AdbRescueService(repository)
+        calls: list[tuple[str, str]] = []
+
+        def prepare(_: object, session_id: str, *, final: bool = False) -> bool:
+            calls.append(("prepare", session_id))
+            self.assertTrue(final)
+            return False
+
+        def finish(_: object, session_id: str, cleared: bool) -> dict[str, object]:
+            calls.append(("finish", session_id))
+            self.assertFalse(cleared)
+            repository.cursor.status = "finished"
+            return {"status": "finished"}
+
+        service._prepare_final_scores = prepare  # type: ignore[method-assign]
+        service._finish_locked = finish  # type: ignore[method-assign]
+
+        self.assertTrue(service.process_next_finalization())
+        self.assertEqual(
+            calls,
+            [("prepare", "queued-session"), ("finish", "queued-session")],
+        )
+        self.assertEqual(repository.cursor.status, "finished")
+        self.assertEqual(repository.connection_value.commits, 1)
+
+
 class RepositoryTests(unittest.TestCase):
+    def test_admin_bulk_delete_accepts_a_full_event_audience(self) -> None:
+        session_ids = [f"bulk-delete-{index:03d}" for index in range(150)]
+        request = AdminDeleteRequest(session_ids=session_ids)
+        self.assertEqual(request.session_ids, session_ids)
+
+        with self.assertRaises(ValueError):
+            AdminDeleteRequest(
+                session_ids=[f"bulk-delete-{index:03d}" for index in range(901)]
+            )
+
     def test_publication_consents_are_independent_and_private_recent_is_hidden(self) -> None:
         repository = MemoryRepository()
         private = repository.create_session("非公開テスト", False, False)
@@ -327,12 +524,12 @@ class RepositoryTests(unittest.TestCase):
             session["session_id"],
             answer,
             vector,
-            "森の探検家タイプ",
+            "クマタイプ",
         )
         matches = repository.find_matches(session["session_id"], vector)
         self.assertEqual(len(matches), 3)
-        self.assertEqual(matches[0]["nickname"], "緑のハル")
-        self.assertGreater(matches[0]["score"], 0.7)
+        self.assertEqual(matches[0]["nickname"], "にわ")
+        self.assertGreater(matches[0]["score"], 0.3)
 
     def test_business_context_is_grounded(self) -> None:
         repository = MemoryRepository()
@@ -423,7 +620,7 @@ class RepositoryTests(unittest.TestCase):
             session["session_id"],
             "緑と自然光が多い場所",
             demo_embedding("緑と自然光が多い場所"),
-            "森の探検家タイプ",
+            "クマタイプ",
         )
 
         participants = {
@@ -432,7 +629,7 @@ class RepositoryTests(unittest.TestCase):
         self.assertEqual(participants[session["session_id"]]["nickname"], "削除テスト")
         self.assertEqual(
             participants[session["session_id"]]["persona_name"],
-            "森の探検家タイプ",
+            "クマタイプ",
         )
         self.assertEqual(participants[session["session_id"]]["message_count"], 1)
 
@@ -443,13 +640,14 @@ class RepositoryTests(unittest.TestCase):
         self.assertEqual(detail["office_preference"]["dimension"], 1024)
         self.assertEqual(len(detail["office_preference"]["values"]), 1024)
 
-        result = repository.delete_participants([session["session_id"], "seed-01"])
+        seed_id = "e4d4ddfcee3e4e76b2cf953fa5885abc"
+        result = repository.delete_participants([session["session_id"], seed_id])
         self.assertEqual(result, {"deleted": 1, "skipped_seed": 1})
         remaining_ids = {
             item["session_id"] for item in repository.list_participants()
         }
         self.assertNotIn(session["session_id"], remaining_ids)
-        self.assertIn("seed-01", remaining_ids)
+        self.assertIn(seed_id, remaining_ids)
         self.assertFalse(
             any(
                 item.get("session_id") == session["session_id"]

@@ -1,0 +1,25 @@
+[Unit]
+Description=Miochan dedicated ADB and Select AI scoring worker
+Wants=network-online.target
+After=network-online.target miochan.service
+
+[Service]
+Type=simple
+User=opc
+Group=opc
+WorkingDirectory=/home/opc/demo_miochan
+EnvironmentFile=/home/opc/.config/miochan/mio-demo.env
+Environment=PYTHONPATH=/home/opc/demo_miochan/.venv/lib/python3.9/site-packages:/home/opc/demo_miochan
+Environment=MIO_SCORING_CONCURRENCY=2
+Environment=MIO_SCORING_POLL_SECONDS=0.5
+ExecStart=/usr/bin/python3 -m app.scoring_worker
+Restart=always
+RestartSec=3
+TimeoutStopSec=30
+KillSignal=SIGINT
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

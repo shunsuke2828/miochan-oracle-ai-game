@@ -316,26 +316,21 @@ def rank_for(score: int) -> str:
     return "E"
 
 
+RANK_TITLES = {
+    "A": "みおちゃんの親友",
+    "B": "頼れるレスキュー隊長",
+    "C": "聞き上手レスキュー隊",
+    "D": "見習いレスキュー隊",
+    "E": "はじめの一歩サポーター",
+}
+
+
 def title_for(final_score: int, turns: list[dict[str, Any]]) -> str:
-    if rank_for(final_score) == "A":
-        return "みおちゃんの親友"
-    scores = [int(item.get("turn_score", 0)) for item in turns]
-    if len(scores) >= 4:
-        midpoint = len(scores) // 2
-        first = sum(scores[:midpoint]) / max(1, midpoint)
-        second = sum(scores[midpoint:]) / max(1, len(scores) - midpoint)
-        if second - first >= 20:
-            return "逆転レスキュー隊"
-    total_penalty = sum(int(item.get("penalty", 0)) for item in turns)
-    if total_penalty >= 20 and scores and scores[-1] >= 65:
-        return "迷子アドバイザー"
-    count = max(1, len(turns))
-    dimensions = [
-        (sum(int(item.get("empathy", 0)) for item in turns) / (10 * count), "聞き上手レスキュー隊"),
-        (sum(int(item.get("action", 0)) for item in turns) / (10 * count), "作戦参謀"),
-        (sum(int(item.get("speed", 0)) for item in turns) / (5 * count), "スピード救助隊"),
-    ]
-    return max(dimensions, key=lambda item: item[0])[1]
+    # Titles are intentionally tied to the displayed A–E rank.  This keeps the
+    # result easy to understand and guarantees that every rank has a distinct
+    # title, regardless of the number or shape of turn-level metrics available.
+    del turns
+    return RANK_TITLES[rank_for(final_score)]
 
 
 def final_score(turns: list[dict[str, Any]], cleared: bool) -> int:

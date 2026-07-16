@@ -86,7 +86,9 @@ class MetricEvent(BaseModel):
 
 
 class AdminDeleteRequest(BaseModel):
-    session_ids: list[str] = Field(min_length=1, max_length=100)
+    # Keep the request below Oracle's 1,000-expression IN-list limit while
+    # allowing the admin screen to delete a full event audience in one action.
+    session_ids: list[str] = Field(min_length=1, max_length=900)
 
     @field_validator("session_ids")
     @classmethod

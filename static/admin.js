@@ -11,7 +11,7 @@ const personaStyle = {
   "小鳥タイプ": { icon: "🐦", color: "#f3a529" },
   "猫タイプ": { icon: "🐈", color: "#ec6f75" },
   "鷹タイプ": { icon: "🦅", color: "#335c91" },
-  "森の探検家タイプ": { icon: "🌿", color: "#4f9d69" },
+  "クマタイプ": { icon: "🐻", color: "#4f9d69" },
 };
 
 async function loadParticipants() {

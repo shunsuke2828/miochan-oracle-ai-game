@@ -121,8 +121,9 @@ class MemoryRepository:
 
     def _seed(self) -> None:
         now = datetime.now(timezone.utc)
-        for index, (nickname, answer, persona) in enumerate(SEED_PARTICIPANTS, start=1):
-            session_id = f"seed-{index:02d}"
+        for index, (session_id, nickname, answer, persona) in enumerate(
+            SEED_PARTICIPANTS, start=1
+        ):
             self._sessions[session_id] = {
                 "session_id": session_id,
                 "nickname": nickname,
@@ -449,8 +450,7 @@ class SqlclAdbRepository:
             """
         )
         existing = {row["session_id"] for row in existing_rows}
-        for index, (nickname, answer, persona) in enumerate(SEED_PARTICIPANTS, start=1):
-            session_id = f"seed-{index:02d}"
+        for session_id, nickname, answer, persona in SEED_PARTICIPANTS:
             if session_id in existing:
                 continue
             self._run(
@@ -986,12 +986,7 @@ class AdbRepository:
     def _seed_if_needed(self) -> None:
         with self.connection() as connection:
             with connection.cursor() as cursor:
-                cursor.execute("select count(*) from mio_demo_sessions where is_seed = 1")
-                if int(cursor.fetchone()[0]) >= len(SEED_PARTICIPANTS):
-                    return
-                for index, (nickname, answer, persona) in enumerate(
-                    SEED_PARTICIPANTS, start=1
-                ):
+                for session_id, nickname, answer, persona in SEED_PARTICIPANTS:
                     cursor.execute(
                         """
                         merge into mio_demo_sessions target
@@ -1006,7 +1001,7 @@ class AdbRepository:
                             systimestamp + interval '30' day
                         )
                         """,
-                        session_id=f"seed-{index:02d}",
+                        session_id=session_id,
                         nickname=nickname,
                         persona_name=persona,
                         answer_text=answer,
@@ -1673,6 +1668,15 @@ def _mds_3d_positions(
     sample_count = len(distance_matrix)
     if sample_count == 1:
         return [[0.0, 0.0, 0.0]], 0.0
+    if all(
+        abs(float(distance_matrix[left][right])) <= 1e-12
+        for left in range(sample_count)
+        for right in range(left + 1, sample_count)
+    ):
+        # A matrix made entirely of identical answers has a valid zero-stress
+        # solution at one point. Skip sklearn's divide-by-zero iterations; the
+        # display-only duplicate offset is applied immediately afterwards.
+        return [[0.0, 0.0, 0.0] for _ in range(sample_count)], 0.0
     try:
         import numpy as np
         from sklearn.manifold import MDS
@@ -1706,6 +1710,73 @@ def _mds_3d_positions(
                 ]
             )
         return fallback, None
+
+
+def _separate_exact_duplicate_positions(
+    positions: list[list[float]],
+    pair_distances: dict[tuple[int, int], float],
+    session_ids: list[str],
+    threshold: float = 1e-7,
+) -> tuple[list[list[float]], int]:
+    """Visually separate identical vectors without changing cosine distances.
+
+    MDS correctly places zero-distance answers at the same point.  That is
+    mathematically faithful but makes participant icons impossible to click.
+    Exact-duplicate groups therefore receive a small, deterministic display
+    offset around their shared centroid.  The distance matrix, edge values,
+    similarity percentages, and nearest-neighbor selection remain untouched.
+    """
+
+    count = len(positions)
+    if count < 2:
+        return positions, 0
+
+    parents = list(range(count))
+
+    def find(index: int) -> int:
+        while parents[index] != index:
+            parents[index] = parents[parents[index]]
+            index = parents[index]
+        return index
+
+    def union(left: int, right: int) -> None:
+        left_root = find(left)
+        right_root = find(right)
+        if left_root != right_root:
+            parents[right_root] = left_root
+
+    for (left, right), distance in pair_distances.items():
+        if float(distance) <= threshold:
+            union(left, right)
+
+    groups: dict[int, list[int]] = {}
+    for index in range(count):
+        groups.setdefault(find(index), []).append(index)
+    duplicate_groups = [members for members in groups.values() if len(members) > 1]
+    if not duplicate_groups:
+        return positions, 0
+
+    import math
+
+    separated = [list(position) for position in positions]
+    for members in duplicate_groups:
+        members = sorted(members, key=lambda index: session_ids[index])
+        centroid = [
+            sum(positions[index][axis] for index in members) / len(members)
+            for axis in range(3)
+        ]
+        phase_seed = sum(ord(char) for index in members for char in session_ids[index])
+        phase = math.radians(phase_seed % 360)
+        radius = 7.5 + min(3.0, max(0, len(members) - 2) * 0.45)
+        for order, index in enumerate(members):
+            angle = phase + (2.0 * math.pi * order / len(members))
+            z_offset = ((order % 3) - 1) * min(2.5, radius * 0.28)
+            separated[index] = [
+                centroid[0] + radius * math.cos(angle),
+                centroid[1] + radius * math.sin(angle),
+                centroid[2] + z_offset,
+            ]
+    return separated, len(duplicate_groups)
 
 
 def _build_network_graph(
@@ -1755,6 +1826,11 @@ def _build_network_graph(
             distance_matrix[right][left] = distance
 
     positions, mds_stress = _mds_3d_positions(distance_matrix)
+    positions, exact_duplicate_groups = _separate_exact_duplicate_positions(
+        positions,
+        pair_distances,
+        [str(session["session_id"]) for session in public_sessions],
+    )
 
     # Keep the display readable: choose the globally closest pairs while
     # limiting every participant to at most three visible connections.
@@ -1834,6 +1910,8 @@ def _build_network_graph(
             "neighbors_per_node": 3,
             "stress": mds_stress,
             "approximate": True,
+            "exact_duplicate_visual_offset": True,
+            "exact_duplicate_groups": exact_duplicate_groups,
         },
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }

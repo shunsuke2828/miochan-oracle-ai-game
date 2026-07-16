@@ -363,31 +363,42 @@ class AdbRescueService:
                         mio_message, turn_started_at,
                     ) = session
                     if int(turn_no) < int(expected_turn):
-                        return self._stored_turn(
+                        stored = self._stored_turn(
                             cursor, session_id, turn_no, masked_answer
                         )
+                        connection.rollback()
+                        return stored
                     if int(turn_no) != int(expected_turn):
                         raise RescueConflict("stale_turn")
+                    if status == "scoring":
+                        connection.rollback()
+                        return {
+                            "accepted": False,
+                            "session_id": session_id,
+                            "status": "scoring",
+                            "scoring_pending": True,
+                            "game_finished": False,
+                        }
                     if status != "playing":
+                        result = self._result_row(cursor, session_id)
+                        connection.rollback()
                         return {
                             "accepted": False,
                             "game_finished": True,
-                            "result": self._result_row(cursor, session_id),
+                            "result": result,
                         }
 
                     cursor.execute("select systimestamp from dual")
                     received_at = cursor.fetchone()[0]
                     if received_at > deadline_at:
-                        cleared = self._prepare_final_scores(
-                            cursor, session_id, final=True
+                        result = self._queue_finalization_locked(
+                            cursor, session_id
                         )
-                        result = self._finish_locked(cursor, session_id, cleared)
                         connection.commit()
                         return {
                             "accepted": False,
                             "time_remaining_sec": 0,
-                            "game_finished": True,
-                            "result": result,
+                            **result,
                         }
 
                     elapsed_sec = max(
@@ -552,10 +563,11 @@ class AdbRescueService:
             "choices": json.loads(_text(row[10]) or "[]"),
             "nickname": row[11],
             "pending_turns": int(row[12]),
-            "scoring_pending": int(row[12]) > 0,
+            "scoring_pending": row[0] == "scoring" or int(row[12]) > 0,
             "time_remaining_sec": max(0, int((row[2] - now).total_seconds())),
             "expired": now >= row[2],
-            "game_finished": row[0] != "playing",
+            "game_ended": row[0] in {"scoring", "finished"},
+            "game_finished": row[0] == "finished",
         }
 
     def finish(self, session_id: str) -> dict[str, Any]:
@@ -574,16 +586,20 @@ class AdbRescueService:
                     row = cursor.fetchone()
                     if not row:
                         raise RescueNotFound("session_not_found")
+                    if row[0] == "finished":
+                        result = self._result_row(cursor, session_id)
+                        connection.rollback()
+                        return result
+                    if row[0] == "scoring":
+                        connection.rollback()
+                        return self._scoring_payload(session_id)
                     if row[0] != "playing":
-                        return self._result_row(cursor, session_id)
+                        raise RescueConflict("invalid_game_status")
                     cursor.execute("select systimestamp from dual")
                     now = cursor.fetchone()[0]
                     if now < row[1] and int(row[2]) > 0:
                         raise RescueNotReady("game_is_still_running")
-                    cleared = self._prepare_final_scores(
-                        cursor, session_id, final=True
-                    )
-                    result = self._finish_locked(cursor, session_id, cleared)
+                    result = self._queue_finalization_locked(cursor, session_id)
                 connection.commit()
                 return result
             except Exception:
@@ -593,10 +609,116 @@ class AdbRescueService:
     def result(self, session_id: str) -> dict[str, Any]:
         with self.repository.connection() as connection:
             with connection.cursor() as cursor:
-                result = self._result_row(cursor, session_id)
-                if result["status"] == "playing":
+                cursor.execute(
+                    "select status from mio_game_sessions where session_id = :session_id",
+                    session_id=session_id,
+                )
+                row = cursor.fetchone()
+                if not row:
+                    raise RescueNotFound("session_not_found")
+                if row[0] == "scoring":
+                    return self._scoring_payload(session_id)
+                if row[0] != "finished":
                     raise RescueNotReady("game_is_still_running")
-                return result
+                return self._result_row(cursor, session_id)
+
+    def process_next_finalization(self) -> bool:
+        """Claim and finish one queued game across all web/worker instances."""
+        with self.repository.connection() as connection:
+            try:
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        """
+                        select session_id
+                        from mio_game_sessions
+                        where status = 'scoring'
+                        order by created_at
+                        for update skip locked
+                        """
+                    )
+                    row = cursor.fetchone()
+                    if not row:
+                        connection.rollback()
+                        return False
+                    session_id = str(row[0])
+                    cleared = self._prepare_final_scores(
+                        cursor, session_id, final=True
+                    )
+                    self._finish_locked(cursor, session_id, cleared)
+                connection.commit()
+                LOGGER.info("rescue final scoring completed: session=%s", session_id)
+                return True
+            except Exception:
+                connection.rollback()
+                raise
+
+    def process_next_pending_turn(self) -> bool:
+        """Enrich one in-game turn when no final result is waiting."""
+        with self.repository.connection() as connection:
+            try:
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        """
+                        select t.session_id, t.turn_no
+                        from mio_turns t
+                        join mio_game_sessions s on s.session_id = t.session_id
+                        where s.status = 'playing'
+                          and (t.score_detail_json is null
+                               or t.answer_vector is null)
+                        order by t.received_at
+                        for update of t.score_detail_json skip locked
+                        """
+                    )
+                    row = cursor.fetchone()
+                    if not row:
+                        connection.rollback()
+                        return False
+                    session_id, turn_no = str(row[0]), int(row[1])
+                    self._enrich_pending_turn(cursor, session_id, turn_no)
+                connection.commit()
+            except Exception:
+                connection.rollback()
+                raise
+        self._reconcile_scored_session(session_id)
+        return True
+
+    def _queue_finalization_locked(
+        self, cursor: oracledb.Cursor, session_id: str
+    ) -> dict[str, Any]:
+        cursor.execute(
+            """
+            update mio_game_sessions
+            set status = 'scoring', current_state = 'scoring',
+                choices_json = '[]',
+                mio_message = 'アドバイスをまとめて採点しているよ！'
+            where session_id = :session_id and status = 'playing'
+            """,
+            session_id=session_id,
+        )
+        if cursor.rowcount:
+            cursor.execute(
+                """
+                insert into mio_score_events (
+                  session_id, event_type, point_delta, reason
+                ) values (
+                  :session_id, 'game_scoring_queued', 0,
+                  'final scoring claimed by dedicated worker'
+                )
+                """,
+                session_id=session_id,
+            )
+        return self._scoring_payload(session_id)
+
+    @staticmethod
+    def _scoring_payload(session_id: str) -> dict[str, Any]:
+        return {
+            "session_id": session_id,
+            "status": "scoring",
+            "accepted": True,
+            "scoring_pending": True,
+            "game_ended": True,
+            "game_finished": False,
+        }
 
     def scoreboard(self) -> dict[str, Any]:
         with self.repository.connection() as connection:

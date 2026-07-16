@@ -27,9 +27,7 @@ def main() -> None:
     try:
         with repository.connection() as connection:
             with connection.cursor() as cursor:
-                for index, (nickname, answer, persona) in enumerate(
-                    SEED_PARTICIPANTS, start=1
-                ):
+                for session_id, nickname, answer, persona in SEED_PARTICIPANTS:
                     cursor.execute(
                         """
                         update mio_demo_sessions
@@ -52,7 +50,7 @@ def main() -> None:
                         embedding_provider=DB_EMBED_PROVIDER,
                         embedding_model=DB_EMBED_MODEL,
                         embedding_region=DB_EMBED_REGION,
-                        session_id=f"seed-{index:02d}",
+                        session_id=session_id,
                     )
                 connection.commit()
                 cursor.execute(

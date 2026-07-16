@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
-from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -154,7 +154,7 @@ def health() -> dict[str, Any]:
             state.repository, "embedding_dimension", 1024
         ),
         "rescue_mode": getattr(state.rescue, "mode", "unknown"),
-        "rescue_scoring_mode": "deferred-db-embedding",
+        "rescue_scoring_mode": "queued-dedicated-db-worker",
         "rescue_chat_model": "google.gemini-2.5-flash",
         "warning": state.repository_warning or state.ai.last_error,
         "gif_source_ready": all(
@@ -217,7 +217,6 @@ def rescue_session_state(session_id: str) -> dict[str, Any]:
 def rescue_turn(
     session_id: str,
     payload: RescueTurnRequest,
-    background_tasks: BackgroundTasks,
 ) -> dict[str, Any]:
     try:
         result = state.rescue.submit_turn(
@@ -226,9 +225,6 @@ def rescue_turn(
             payload.answer_type,
             payload.user_answer,
         )
-        processor = getattr(state.rescue, "process_pending_turn", None)
-        if result.get("accepted") and result.get("scoring_pending") and callable(processor):
-            background_tasks.add_task(processor, session_id, payload.turn_no)
         return result
     except RescueNotFound as exc:
         raise HTTPException(status_code=404, detail="ゲームが見つかりません") from exc
@@ -240,9 +236,12 @@ def rescue_turn(
 
 
 @app.post("/api/mio/sessions/{session_id}/finish")
-def rescue_finish(session_id: str) -> dict[str, Any]:
+def rescue_finish(session_id: str) -> Any:
     try:
-        return state.rescue.finish(session_id)
+        result = state.rescue.finish(session_id)
+        if result.get("status") == "scoring":
+            return JSONResponse(status_code=202, content=result)
+        return result
     except RescueNotFound as exc:
         raise HTTPException(status_code=404, detail="ゲームが見つかりません") from exc
     except RescueNotReady as exc:
@@ -250,9 +249,12 @@ def rescue_finish(session_id: str) -> dict[str, Any]:
 
 
 @app.get("/api/mio/sessions/{session_id}/result")
-def rescue_result(session_id: str) -> dict[str, Any]:
+def rescue_result(session_id: str) -> Any:
     try:
-        return state.rescue.result(session_id)
+        result = state.rescue.result(session_id)
+        if result.get("status") == "scoring":
+            return JSONResponse(status_code=202, content=result)
+        return result
     except RescueNotFound as exc:
         raise HTTPException(status_code=404, detail="ゲームが見つかりません") from exc
     except RescueNotReady as exc:
